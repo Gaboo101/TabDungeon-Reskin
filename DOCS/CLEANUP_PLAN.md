@@ -20,7 +20,7 @@ This document records the approved cleanup direction for the extension.
 - `scripts/`: evaluation tooling and sample data
 - `tests/`: Node tests
 - `DOCS/`: project documentation and presentation material
-- `_archive/assets/`: unused visual assets retained for reference
+- `archive/assets/`: unused visual assets retained for reference
 
 ## Deliberately deferred
 
