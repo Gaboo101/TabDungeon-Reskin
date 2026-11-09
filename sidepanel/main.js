@@ -1,9 +1,9 @@
-import { createRuntime } from './sidepanel/runtime.js';
-import { createStatsView } from './sidepanel/stats.js';
-import { setupChat } from './sidepanel/chat.js';
-import { setupCards } from './sidepanel/flashcards.js';
-import { setupSettings } from './sidepanel/settings.js';
-import { setupSimulation } from './sidepanel/simulation.js';
+import { createRuntime } from './runtime.js';
+import { createStatsView } from './stats.js';
+import { setupChat } from './chat.js';
+import { setupCards } from './flashcards.js';
+import { setupSettings } from './settings.js';
+import { setupSimulation } from './simulation.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);

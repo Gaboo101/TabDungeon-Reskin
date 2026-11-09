@@ -1,4 +1,4 @@
-import { createMockStudyContent } from './mock-study-content.js';
+import { createMockStudyContent } from './seed-data.js';
 
 export const STORAGE_KEY = 'studyState';
 

@@ -1,6 +1,6 @@
-import { buildDeckModel, scoreRelevance } from '../relevance.js';
-import { PARAMS } from '../params.js';
-import { calculateReview } from '../scheduler.js';
+import { buildDeckModel, scoreRelevance } from '../core/relevance.js';
+import { PARAMS } from '../core/params.js';
+import { calculateReview } from '../core/scheduler.js';
 
 const SAMPLE_VISITS = [
   { title: 'JavaScript tutorial for beginners', url: 'https://example.com/tutorial', description: 'Learn programming with a practical coding lesson.', headings: ['Variables and functions'], dwell: 120, active: true },

@@ -7,8 +7,8 @@ import {
   isScorableUrl,
   normalizeUrl,
   scoreRelevance
-} from './relevance.js';
-import { PARAMS, clamp } from './params.js';
+} from '../core/relevance.js';
+import { PARAMS, clamp } from '../core/params.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 const MODEL = 'gemini-3.5-flash-lite';
@@ -98,7 +98,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
   if (request.action === 'openDeckManager') {
-    chrome.tabs.create({ url: chrome.runtime.getURL('deck-manager.html') });
+    chrome.tabs.create({ url: chrome.runtime.getURL('deck-manager/deck-manager.html') });
     return false;
   }
   if (request.action === 'scoreRelevance') {

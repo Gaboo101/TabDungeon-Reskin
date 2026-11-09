@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { calculateReview } from '../scheduler.js';
+import { calculateReview } from '../core/scheduler.js';
 
 const now = Date.UTC(2026, 0, 1);
 const base = {

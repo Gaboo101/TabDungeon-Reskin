@@ -7,7 +7,7 @@ import {
   normalizeUrl,
   scoreRelevance,
   tokenize
-} from '../relevance.js';
+} from '../core/relevance.js';
 
 const dataDeck = buildDeckModel([
   { id: 'tree', front: 'Binary tree traversal', back: 'Nodes, edges, recursion, depth first search' },

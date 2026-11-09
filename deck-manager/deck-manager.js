@@ -1,5 +1,5 @@
-import { createCard, loadStudyState, saveStudyState } from './study-state.js';
-import { createButton, createInput } from './dom.js';
+import { createCard, loadStudyState, saveStudyState } from '../state/study-state.js';
+import { createButton, createInput } from '../dom.js';
 
 let state;
 

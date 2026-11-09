@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { predict, train } from '../relevance-model.js';
+import { predict, train } from '../core/relevance-model.js';
 
 test('Naive Bayes model trains and predicts within the inference budget', () => {
   const model = train([

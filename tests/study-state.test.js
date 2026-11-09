@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { loadStudyState } from '../study-state.js';
+import { loadStudyState } from '../state/study-state.js';
 
 function createStorage(initialState) {
   const writes = [];

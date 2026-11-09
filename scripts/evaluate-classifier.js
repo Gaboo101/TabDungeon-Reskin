@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { classifyPage } from '../classifier.js';
-import { buildDeckModel, scoreRelevance } from '../relevance.js';
-import { predict, train } from '../relevance-model.js';
+import { buildDeckModel, scoreRelevance } from '../core/relevance.js';
+import { predict, train } from '../core/relevance-model.js';
 
 const LABELS = ['related', 'unrelated', 'uncertain'];
 

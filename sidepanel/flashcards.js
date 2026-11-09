@@ -1,6 +1,6 @@
-import { PARAMS } from '../params.js';
-import { calculateReview, isDue } from '../scheduler.js';
-import { createCard, loadStudyState, saveStudyState } from '../study-state.js';
+import { PARAMS } from '../core/params.js';
+import { calculateReview, isDue } from '../core/scheduler.js';
+import { createCard, loadStudyState, saveStudyState } from '../state/study-state.js';
 import { createButton, createInput } from '../dom.js';
 
 export function setupCards($, runtime) {
@@ -8,11 +8,11 @@ export function setupCards($, runtime) {
   let activeCard;
 
   $('open-deck-manager').addEventListener('click', () => {
-    const extensionUrl = globalThis.chrome?.runtime?.getURL('deck-manager.html');
+    const extensionUrl = globalThis.chrome?.runtime?.getURL('deck-manager/deck-manager.html');
     if (extensionUrl) {
       runtime.send({ action: 'openDeckManager' });
     } else {
-      window.open('deck-manager.html', '_blank', 'noopener');
+      window.open('deck-manager/deck-manager.html', '_blank', 'noopener');
     }
   });
 
