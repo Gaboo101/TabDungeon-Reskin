@@ -248,6 +248,39 @@ a {
   background: #df8d78 !important;
 }
 
+.simulation-results {
+  max-height: 240px;
+  margin-top: 10px;
+  overflow: auto;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+.simulation-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.simulation-control input {
+  width: 72px;
+}
+
+.simulation-results table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.simulation-results th,
+.simulation-results td {
+  padding: 4px;
+  border: 1px solid var(--paper-dark);
+  text-align: left;
+}
+
 .developer-tools {
   display: grid;
   gap: 8px;

@@ -3,6 +3,7 @@ import { createStatsView } from './stats.js';
 import { setupChat } from './chat.js';
 import { setupCards } from './flashcards.js';
 import { setupSettings } from './settings.js';
+import { setupSimulation } from './simulation.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   const $ = id => document.getElementById(id);
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const stats = createStatsView($, runtime);
   const settings = setupSettings($, runtime);
   const cards = setupCards($, runtime);
+  setupSimulation($, cards);
 
   function switchPanel(id) {
     panels.forEach(panel => {
