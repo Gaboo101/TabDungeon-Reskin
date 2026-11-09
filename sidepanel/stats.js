@@ -30,5 +30,5 @@ export function createStatsView($, runtime) {
     loadTabs();
   }
 
-  return { renderStats, update };
+  return { update };
 }

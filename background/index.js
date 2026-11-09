@@ -12,7 +12,6 @@ import { PARAMS, clamp } from '../core/params.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 const MODEL = 'gemini-3.5-flash-lite';
-const APIProvider = 'google';
 
 // Default system prompt for the playable hero who doubles as the AI Guide NPC.
 // IMPORTANT: Only use information explicitly provided in the context.

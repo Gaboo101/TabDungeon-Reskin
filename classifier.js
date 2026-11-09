@@ -1,7 +1,7 @@
 // TabDungeon - Domain Classifier
 // Classifies domains as productive or distracting
 
-export const DEFAULT_PRODUCTIVE_DOMAINS = [
+const DEFAULT_PRODUCTIVE_DOMAINS = [
   // Search & Knowledge
   'google.com', 'wikipedia.org', 'scholar.google.com',
   'answers.com', 'quartz.com', 'medium.com',
@@ -38,7 +38,7 @@ export const DEFAULT_PRODUCTIVE_DOMAINS = [
   'cvsu.edu.ph',
 ];
 
-export const DEFAULT_DISTRACTING_DOMAINS = [
+const DEFAULT_DISTRACTING_DOMAINS = [
   // Social Media
   'facebook.com', 'instagram.com', 'twitter.com', 'x.com',
   'tiktok.com', 'snapchat.com', 'linkedin.com',
@@ -212,77 +212,4 @@ export function classifyDomain(url) {
     console.error('Error classifying domain:', e);
     return 'neutral';
   }
-}
-
-/**
- * Get classification info with reasoning
- */
-export function getClassificationInfo(url, metadata = {}) {
-  const classification = classifyPage(url, metadata);
-  
-  let reasons = [];
-  
-  if (classification === 'productive') {
-    try {
-      const parsed = new URL(url);
-      const domain = parsed.hostname.toLowerCase();
-      const pathname = parsed.pathname;
-      
-      if (domain.endsWith('.edu') || domain.endsWith('.gov')) {
-        reasons.push('Educational/Government domain');
-      }
-      
-      for (const productiveDomain of DEFAULT_PRODUCTIVE_DOMAINS) {
-        if (domain.includes(productiveDomain) || domain === productiveDomain) {
-          reasons.push(`Recognized productive domain: ${productiveDomain}`);
-          break;
-        }
-      }
-      
-      for (const pattern of PRODUCTIVE_PATTERNS) {
-        if (pattern.test(pathname)) {
-          reasons.push('URL pattern indicates productive content');
-          break;
-        }
-
-        if (getMetadataText(metadata)) reasons.push('Page metadata indicates learning or work content');
-      }
-    } catch (e) {}
-    
-    if (reasons.length === 0) {
-      reasons.push('Default classification: productive');
-    }
-  } else if (classification === 'distracting') {
-    try {
-      const parsed = new URL(url);
-      const domain = parsed.hostname.toLowerCase();
-      const pathname = parsed.pathname;
-      
-      for (const distractingDomain of DEFAULT_DISTRACTING_DOMAINS) {
-        if (domain.includes(distractingDomain) || domain === distractingDomain) {
-          reasons.push(`Recognized distracting domain: ${distractingDomain}`);
-          break;
-        }
-      }
-      
-      for (const pattern of DISTRACTING_PATTERNS) {
-        if (pattern.test(pathname)) {
-          reasons.push('URL pattern indicates distracting content');
-          break;
-        }
-
-        if (getMetadataText(metadata)) reasons.push('Page metadata indicates entertainment or distraction');
-      }
-    } catch (e) {}
-    
-    if (reasons.length === 0) {
-      reasons.push('Default classification: distracting');
-    }
-  }
-  
-  return {
-    classification,
-    domain: new URL(url).hostname,
-    reasons
-  };
 }

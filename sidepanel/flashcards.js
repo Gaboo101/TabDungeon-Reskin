@@ -181,7 +181,6 @@ export function setupCards($, runtime) {
       state = await loadStudyState();
       render();
     },
-    getState: () => state,
-    saveState: stateToSave => saveStudyState(stateToSave)
+    getState: () => state
   };
 }
