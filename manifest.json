@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "TabDungeon",
+  "version": "1.0",
+  "description": "A gamified rogue-like extension for productivity optimization",
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "sidePanel",
+    "alarms",
+    "scripting",
+    "idle"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "web_accessible_resources": [{
+    "resources": [
+      "assets/sprites/ui-tabdungeon.png",
+      "assets/sprites/ui-tabdungeon.json"
+    ],
+    "matches": ["<all_urls>"]
+  }]
+}
