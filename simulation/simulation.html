@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TabDungeon Simulation</title>
+  <link rel="stylesheet" href="../sidepanel/styles.css">
+  <link rel="stylesheet" href="simulation.css">
+</head>
+<body class="simulation-page">
+  <main class="simulation-shell">
+    <header class="simulation-header">
+      <div>
+        <p class="eyebrow">TABDUNGEON DEVELOPER TOOL</p>
+        <h1>Relevance simulation</h1>
+        <p>Test the real scorer against study decks. This page does not change cards, schedules, or browser tabs.</p>
+      </div>
+      <button id="refresh-decks" type="button">Refresh decks</button>
+    </header>
+
+    <section class="simulation-card">
+      <h2>Add page visits</h2>
+      <div class="simulation-form">
+        <input id="visit-url" type="url" placeholder="https://example.com/page">
+        <input id="visit-title" type="text" placeholder="Optional page title">
+        <input id="visit-description" type="text" placeholder="Optional description or keywords">
+        <button id="add-visit" type="button">Add URL</button>
+        <button id="add-tabs" type="button">Add current tabs</button>
+      </div>
+      <p class="help-text">Current tabs use their local page metadata. Manual URLs use the URL and any metadata you provide.</p>
+      <div id="visit-list" class="visit-list"></div>
+    </section>
+
+    <section class="simulation-card">
+      <div class="results-heading">
+        <h2>Results</h2>
+        <button id="run-simulation" type="button">Run simulation</button>
+      </div>
+      <div id="summary" class="summary"></div>
+      <div id="results" class="results"><p>Add a visit, then run the simulation.</p></div>
+    </section>
+    <p id="simulation-status" class="simulation-status" aria-live="polite"></p>
+  </main>
+  <script type="module" src="simulation.js"></script>
+</body>
+</html>

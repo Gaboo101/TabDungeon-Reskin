@@ -48,6 +48,14 @@ export function setupSettings($, runtime) {
     setDeveloperVisibility(event.target.checked);
     save({ devMode });
   });
+  $('open-simulation').addEventListener('click', () => {
+    const url = globalThis.chrome?.runtime?.getURL('simulation/simulation.html');
+    if (url) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open('../simulation/simulation.html', '_blank', 'noopener');
+    }
+  });
 
   return { load, isDeveloperMode: () => devMode };
 }
