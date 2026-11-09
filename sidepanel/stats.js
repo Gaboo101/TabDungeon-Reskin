@@ -4,8 +4,8 @@ export function createStatsView($, runtime) {
   function renderStats(stats) {
     if (!stats) return;
     $('session-time').textContent = `Session: ${formatMinutes(Date.now() - (stats.startTime || Date.now()))}`;
-    $('productive-time').textContent = `Study exposure: ${formatMinutes(stats.exposureMs)}`;
-    $('distracted-time').textContent = `Due cards: ${stats.dueCards || 0}`;
+    $('study-exposure').textContent = `Study exposure: ${formatMinutes(stats.exposureMs)}`;
+    $('due-cards').textContent = `Due cards: ${stats.dueCards || 0}`;
     $('tab-count').textContent = `New tabs: ${stats.tabsVisited || 0}`;
   }
 

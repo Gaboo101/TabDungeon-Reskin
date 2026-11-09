@@ -140,9 +140,3 @@ export function normalizeUrl(url) {
     return '';
   }
 }
-
-// Kept as a compatibility helper for callers being migrated to deck models.
-export function deckText(deck, cards = []) {
-  return cards.filter(card => card.deckId === deck.id)
-    .flatMap(card => [card.front, card.back]).filter(Boolean).join(' ');
-}

@@ -18,12 +18,5 @@
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  },
-  "web_accessible_resources": [{
-    "resources": [
-      "assets/sprites/ui-tabdungeon.png",
-      "assets/sprites/ui-tabdungeon.json"
-    ],
-    "matches": ["<all_urls>"]
-  }]
+  }
 }
