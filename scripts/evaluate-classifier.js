@@ -71,7 +71,7 @@ function main(csvPath, decksPath) {
   const models = Object.fromEntries(Object.entries(decks).map(([id, deck]) => [id, buildDeckModel(deck.cards || [], { ...deck, id })]));
   const actual = rows.map(row => row.label);
   const baseline = rows.map(row => classifyPage(`https://${row.domain || 'example.invalid'}`, row)).map(label =>
-    label === 'productive' ? 'related' : label === 'distracting' ? 'unrelated' : 'uncertain');
+    label === 'learning' ? 'related' : label === 'non-learning' ? 'unrelated' : 'uncertain');
   confusionReport('Old task-blind baseline', actual, baseline);
 
   let best = { f1: -1, hi: 0.25, lo: 0.08 };

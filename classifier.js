@@ -1,7 +1,7 @@
-// TabDungeon - Domain Classifier
-// Classifies domains as productive or distracting
+// TabDungeon - Legacy content classifier
+// Estimates whether a page resembles learning-oriented or non-learning content.
 
-const DEFAULT_PRODUCTIVE_DOMAINS = [
+const DEFAULT_LEARNING_DOMAINS = [
   // Search & Knowledge
   'google.com', 'wikipedia.org', 'scholar.google.com',
   'answers.com', 'quartz.com', 'medium.com',
@@ -38,7 +38,7 @@ const DEFAULT_PRODUCTIVE_DOMAINS = [
   'cvsu.edu.ph',
 ];
 
-const DEFAULT_DISTRACTING_DOMAINS = [
+const DEFAULT_NON_LEARNING_DOMAINS = [
   // Social Media
   'facebook.com', 'instagram.com', 'twitter.com', 'x.com',
   'tiktok.com', 'snapchat.com', 'linkedin.com',
@@ -64,7 +64,7 @@ const DEFAULT_DISTRACTING_DOMAINS = [
   'spotify.com', 'soundcloud.com', 'apple.music.com',
 ];
 
-const PRODUCTIVE_PATTERNS = [
+const LEARNING_PATTERNS = [
   /\/courses\/?/i,
   /\/lecture\/?/i,
   /\/tutorial\/?/i,
@@ -96,7 +96,7 @@ const PRODUCTIVE_PATTERNS = [
   /\/test/i,
 ];
 
-const DISTRACTING_PATTERNS = [
+const NON_LEARNING_PATTERNS = [
   /\/feed\/?/i,
   /\/stories\/?/i,
   /\/explore\/?/i,
@@ -118,7 +118,7 @@ const DISTRACTING_PATTERNS = [
   /\/offer/i,
 ];
 
-const PRODUCTIVE_KEYWORDS = [
+const LEARNING_KEYWORDS = [
   'tutorial', 'course', 'lecture', 'lesson', 'learn', 'educational',
   'education', 'how to', 'explained', 'documentation', 'programming',
   'coding', 'javascript', 'python', 'study', 'research', 'math',
@@ -126,7 +126,7 @@ const PRODUCTIVE_KEYWORDS = [
   'walkthrough', 'development', 'web development'
 ];
 
-const DISTRACTING_KEYWORDS = [
+const NON_LEARNING_KEYWORDS = [
   'funny', 'meme', 'prank', 'reaction', 'celebrity', 'gossip',
   'compilation', 'music video', 'lyrics', 'trailer', 'gaming',
   'gameplay', 'stream', 'vlog', 'shorts', 'challenge'
@@ -146,15 +146,15 @@ export function classifyPage(url, metadata = {}) {
   const text = getMetadataText(metadata);
   if (!text) return domainClassification;
 
-  const productiveScore = PRODUCTIVE_KEYWORDS.reduce(
+  const learningScore = LEARNING_KEYWORDS.reduce(
     (score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0
   );
-  const distractingScore = DISTRACTING_KEYWORDS.reduce(
+  const nonLearningScore = NON_LEARNING_KEYWORDS.reduce(
     (score, keyword) => score + (text.includes(keyword) ? 1 : 0), 0
   );
 
-  if (productiveScore > distractingScore && productiveScore > 0) return 'productive';
-  if (distractingScore > productiveScore && distractingScore > 0) return 'distracting';
+  if (learningScore > nonLearningScore && learningScore > 0) return 'learning';
+  if (nonLearningScore > learningScore && nonLearningScore > 0) return 'non-learning';
   return domainClassification;
 }
 
@@ -169,40 +169,40 @@ export function classifyDomain(url) {
     
     // Check if it's an educational institution
     if (domain.endsWith('.edu') || domain.endsWith('.gov')) {
-      return 'productive';
+      return 'learning';
     }
     
-    // Check against productive domains
-    for (const productiveDomain of DEFAULT_PRODUCTIVE_DOMAINS) {
-      if (domain.includes(productiveDomain) || domain === productiveDomain) {
-        // Check if the path indicates distracting content on a productive domain
-        for (const pattern of DISTRACTING_PATTERNS) {
+    // Check against learning-oriented domains
+    for (const learningDomain of DEFAULT_LEARNING_DOMAINS) {
+      if (domain.includes(learningDomain) || domain === learningDomain) {
+        // Check if the path indicates non-learning content on a learning domain
+        for (const pattern of NON_LEARNING_PATTERNS) {
           if (pattern.test(pathname)) {
-            return 'distracting';
+            return 'non-learning';
           }
         }
-        return 'productive';
+        return 'learning';
       }
     }
     
-    // Check against distracting domains
-    for (const distractingDomain of DEFAULT_DISTRACTING_DOMAINS) {
-      if (domain.includes(distractingDomain) || domain === distractingDomain) {
-        return 'distracting';
+    // Check against non-learning domains
+    for (const nonLearningDomain of DEFAULT_NON_LEARNING_DOMAINS) {
+      if (domain.includes(nonLearningDomain) || domain === nonLearningDomain) {
+        return 'non-learning';
       }
     }
     
-    // Check URL patterns for productive content
-    for (const pattern of PRODUCTIVE_PATTERNS) {
+    // Check URL patterns for learning-oriented content
+    for (const pattern of LEARNING_PATTERNS) {
       if (pattern.test(pathname)) {
-        return 'productive';
+        return 'learning';
       }
     }
     
-    // Check URL patterns for distracting content
-    for (const pattern of DISTRACTING_PATTERNS) {
+    // Check URL patterns for non-learning content
+    for (const pattern of NON_LEARNING_PATTERNS) {
       if (pattern.test(pathname)) {
-        return 'distracting';
+        return 'non-learning';
       }
     }
     
