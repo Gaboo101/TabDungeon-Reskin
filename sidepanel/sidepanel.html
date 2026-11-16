@@ -29,6 +29,26 @@
             <span id="tab-count">New tabs: 0</span>
           </div>
           <h2>Active study context</h2><div id="tabs-list" class="tabs-list"><span>Loading...</span></div>
+          <section class="review-section">
+            <h2>Due flashcard</h2>
+            <div id="review-status" class="review-status">Loading your next review...</div>
+            <div id="empty-card-state" class="drawn-card" hidden>All caught up. Your next review will appear here.</div>
+            <div id="answer-card" class="drawn-card" hidden>
+              <strong id="card-question"></strong>
+              <textarea id="card-response" class="card-response" rows="3" placeholder="Type your answer here..."></textarea>
+              <button id="submit-card-answer" type="button">Finish answer</button>
+              <span id="card-answer" hidden></span>
+            </div>
+            <div id="review-actions" class="review-actions" hidden>
+              <span>How well did you recall it?</span>
+              <div class="quality-buttons">
+                <button class="quality-button quality-again" data-quality="1" type="button">Again</button>
+                <button class="quality-button" data-quality="3" type="button">Hard</button>
+                <button class="quality-button quality-good" data-quality="4" type="button">Good</button>
+                <button class="quality-button quality-easy" data-quality="5" type="button">Easy</button>
+              </div>
+            </div>
+          </section>
         </section>
         <section class="panel" id="guide-panel" hidden>
           <p class="panel-title">Guide Chat</p>
@@ -37,23 +57,6 @@
         </section>
         <section class="panel" id="cards-panel" hidden>
           <p class="panel-title">Flashcard decks</p>
-          <div id="review-status" class="review-status">Loading your next review...</div>
-          <div id="empty-card-state" class="drawn-card" hidden>All caught up. Your next review will appear here.</div>
-          <div id="answer-card" class="drawn-card" hidden>
-            <strong id="card-question"></strong>
-            <textarea id="card-response" class="card-response" rows="3" placeholder="Type your answer here..."></textarea>
-            <button id="submit-card-answer" type="button">Finish answer</button>
-            <span id="card-answer" hidden></span>
-          </div>
-          <div id="review-actions" class="review-actions" hidden>
-            <span>How well did you recall it?</span>
-            <div class="quality-buttons">
-              <button class="quality-button quality-again" data-quality="1" type="button">Again</button>
-              <button class="quality-button" data-quality="3" type="button">Hard</button>
-              <button class="quality-button quality-good" data-quality="4" type="button">Good</button>
-              <button class="quality-button quality-easy" data-quality="5" type="button">Easy</button>
-            </div>
-          </div>
           <div class="editor-toolbar">
             <strong>Deck editor</strong>
             <button id="open-deck-manager" type="button">Open full editor</button>
@@ -76,10 +79,8 @@
           <pre id="developer-output" hidden></pre>
           <div id="developer-tools" class="developer-tools" hidden>
             <p class="panel-title">SIMULATION</p>
-            <p>Replay the sample “exam in 10 days” visits without changing real cards or schedules.</p>
-            <label class="simulation-control">Advance days <input id="simulation-days" type="number" min="0" value="10"></label>
-            <button id="run-simulation" type="button">Run sample replay</button>
-            <div id="simulation-results" class="simulation-results"></div>
+            <p>Test the relevance scorer without changing real cards or schedules.</p>
+            <button id="open-simulation" type="button">Open simulation page</button>
           </div>
         </section>
       </main>

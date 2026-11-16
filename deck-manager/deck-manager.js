@@ -41,8 +41,7 @@ function renderDeck(deck) {
   const cards = state.cards.filter(card => card.deckId === deck.id);
   const meta = document.createElement('p');
   meta.className = 'manager-deck-meta';
-  const source = deck.source ? ` · Source: ${deck.source}` : '';
-  meta.textContent = `${cards.length} card${cards.length === 1 ? '' : 's'} · ${deck.examDate ? 'deadline mode' : 'retention mode'}${source}`;
+  meta.textContent = `${cards.length} card${cards.length === 1 ? '' : 's'} · ${deck.examDate ? 'deadline mode' : 'retention mode'}`;
   section.appendChild(meta);
 
   const cardGrid = document.createElement('div');

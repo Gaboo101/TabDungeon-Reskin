@@ -172,6 +172,12 @@ a {
   text-align: center;
 }
 
+.review-section {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 2px dashed var(--paper-dark);
+}
+
 .deck-list {
   display: grid;
   gap: 8px;
@@ -186,31 +192,27 @@ a {
   border: 2px solid var(--paper-dark);
 }
 
-.deck-editor-header,
-.card-editor-row,
-.new-card-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 5px;
+.deck-name {
+  color: var(--wood-dark);
+  overflow-wrap: anywhere;
 }
 
-.deck-editor-header {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.deck-row small {
+.deck-details {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
   font-size: 11px;
 }
 
-.card-editor-list {
-  display: grid;
-  gap: 5px;
-  padding-top: 4px;
-}
-
-.card-editor-row .small-button,
-.new-card-row .small-button {
-  grid-column: auto;
+.deck-due-input {
+  min-width: 0;
+  padding: 3px;
+  border: 1px solid var(--paper-dark);
+  background: #fff1cf;
+  color: var(--ink);
+  font: inherit;
+  font-size: 10px;
 }
 
 .editor-toolbar {
@@ -232,12 +234,6 @@ a {
   flex: 1;
 }
 
-.card-editor-input,
-.deck-name-input {
-  width: 100%;
-  min-width: 0;
-}
-
 .small-button {
   padding: 5px 6px !important;
   font-size: 10px;
@@ -246,39 +242,6 @@ a {
 
 .danger-button {
   background: #df8d78 !important;
-}
-
-.simulation-results {
-  max-height: 240px;
-  margin-top: 10px;
-  overflow: auto;
-  font-family: monospace;
-  font-size: 10px;
-}
-
-.simulation-control {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 8px 0;
-  font-size: 12px;
-}
-
-.simulation-control input {
-  width: 72px;
-}
-
-.simulation-results table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.simulation-results th,
-.simulation-results td {
-  padding: 4px;
-  border: 1px solid var(--paper-dark);
-  text-align: left;
 }
 
 .developer-tools {

@@ -48,6 +48,9 @@ export function setupSettings($, runtime) {
     setDeveloperVisibility(event.target.checked);
     save({ devMode });
   });
+  $('open-simulation').addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('simulation/simulation.html') });
+  });
 
   return { load, isDeveloperMode: () => devMode };
 }

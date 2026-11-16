@@ -1,7 +1,6 @@
 import { PARAMS } from '../core/params.js';
 import { calculateReview, isDue } from '../core/scheduler.js';
-import { createCard, loadStudyState, saveStudyState } from '../state/study-state.js';
-import { createButton, createInput } from '../dom.js';
+import { loadStudyState, saveStudyState } from '../state/study-state.js';
 
 export function setupCards($, runtime) {
   let state;
@@ -16,103 +15,36 @@ export function setupCards($, runtime) {
     }
   });
 
-  async function removeDeck(deck) {
-    if (!confirm(`Delete "${deck.name}" and its cards?`)) return;
-    state.decks = state.decks.filter(item => item.id !== deck.id);
-    state.cards = state.cards.filter(card => card.deckId !== deck.id);
-    await saveStudyState(state);
-    $('deck-editor-status').textContent = 'Deck deleted.';
-    render();
-  }
-
-  function renderCardEditor(deck, card) {
-    const row = document.createElement('div');
-    row.className = 'card-editor-row';
-    const front = createInput(card.front, 'Question', 'text', 'card-editor-input');
-    const back = createInput(card.back, 'Answer', 'text', 'card-editor-input');
-    const save = createButton('Save', 'small-button');
-    const remove = createButton('Delete', 'small-button danger-button');
-    save.addEventListener('click', async () => {
-      if (!front.value.trim() || !back.value.trim()) {
-        $('deck-editor-status').textContent = 'A card needs both a question and an answer.';
-        return;
-      }
-      card.front = front.value.trim();
-      card.back = back.value.trim();
-      await saveStudyState(state);
-      $('deck-editor-status').textContent = 'Card saved.';
-      render();
-    });
-    remove.addEventListener('click', async () => {
-      state.cards = state.cards.filter(item => item.id !== card.id);
-      await saveStudyState(state);
-      $('deck-editor-status').textContent = 'Card deleted.';
-      render();
-    });
-    row.append(front, back, save, remove);
-    return row;
-  }
-
-  function renderDeckEditor(deck) {
+  function renderDeckSummary(deck) {
     const row = document.createElement('section');
     row.className = 'deck-row';
-    const header = document.createElement('div');
-    header.className = 'deck-editor-header';
-    const name = createInput(deck.name, 'Deck topic', 'text', 'deck-name-input');
-    const examDate = document.createElement('input');
-    examDate.type = 'date';
-    examDate.setAttribute('aria-label', `Exam date for ${deck.name}`);
-    examDate.value = deck.examDate ? new Date(deck.examDate).toISOString().slice(0, 10) : '';
-    const save = createButton('Save deck', 'small-button');
-    const remove = createButton('Delete deck', 'small-button danger-button');
-    save.addEventListener('click', async () => {
-      if (!name.value.trim()) {
-        $('deck-editor-status').textContent = 'Give the deck a topic name first.';
-        return;
-      }
-      deck.name = name.value.trim();
-      deck.examDate = examDate.value ? new Date(`${examDate.value}T23:59:59`).getTime() : null;
-      await saveStudyState(state);
-      $('deck-editor-status').textContent = 'Deck saved.';
-      render();
-    });
-    remove.addEventListener('click', () => removeDeck(deck));
-    header.append(name, examDate, save, remove);
-    row.appendChild(header);
-
     const cards = state.cards.filter(card => card.deckId === deck.id);
-    const cardCount = document.createElement('small');
-    const source = deck.source ? ` · Source: ${deck.source}` : '';
-    cardCount.textContent = `${cards.length} card${cards.length === 1 ? '' : 's'} · ${deck.examDate ? 'deadline mode' : 'retention mode'}${source}`;
-    row.appendChild(cardCount);
-
-    const cardList = document.createElement('div');
-    cardList.className = 'card-editor-list';
-    cards.forEach(card => cardList.appendChild(renderCardEditor(deck, card)));
-    row.appendChild(cardList);
-
-    const newFront = createInput('', 'New question', 'text', 'card-editor-input');
-    const newBack = createInput('', 'New answer', 'text', 'card-editor-input');
-    const addCard = createButton('+ Card', 'small-button');
-    addCard.addEventListener('click', async () => {
-      if (!newFront.value.trim() || !newBack.value.trim()) {
-        $('deck-editor-status').textContent = 'Add a question and answer for the new card.';
-        return;
-      }
-      state.cards.push(createCard({
-        id: `card-${Date.now()}`,
-        deckId: deck.id,
-        front: newFront.value.trim(),
-        back: newBack.value.trim()
-      }));
+    const nextDue = cards.length
+      ? Math.min(...cards.map(card => card.dueAt || Date.now()))
+      : null;
+    const name = document.createElement('strong');
+    name.className = 'deck-name';
+    name.textContent = deck.name;
+    const details = document.createElement('div');
+    details.className = 'deck-details';
+    const dueLabel = document.createElement('span');
+    dueLabel.textContent = 'Due date';
+    const dueInput = document.createElement('input');
+    dueInput.type = 'date';
+    dueInput.className = 'deck-due-input';
+    dueInput.setAttribute('aria-label', `Due date for ${deck.name}`);
+    dueInput.value = nextDue ? new Date(nextDue).toISOString().slice(0, 10) : '';
+    dueInput.addEventListener('change', async () => {
+      const dueAt = dueInput.value ? new Date(`${dueInput.value}T23:59:59.999`).getTime() : 0;
+      cards.forEach(card => { card.dueAt = dueAt; });
       await saveStudyState(state);
-      $('deck-editor-status').textContent = 'Card added.';
+      $('deck-editor-status').textContent = 'Due date updated.';
       render();
     });
-    const addCardRow = document.createElement('div');
-    addCardRow.className = 'new-card-row';
-    addCardRow.append(newFront, newBack, addCard);
-    row.appendChild(addCardRow);
+    const count = document.createElement('span');
+    count.textContent = `${cards.length} card${cards.length === 1 ? '' : 's'}`;
+    details.append(dueLabel, dueInput, count);
+    row.append(name, details);
     return row;
   }
 
@@ -128,7 +60,7 @@ export function setupCards($, runtime) {
     $('submit-card-answer').disabled = false;
     $('card-response').value = '';
     $('deck-list').textContent = '';
-    state.decks.forEach(deck => $('deck-list').appendChild(renderDeckEditor(deck)));
+    state.decks.forEach(deck => $('deck-list').appendChild(renderDeckSummary(deck)));
     if (!activeCard) {
       $('review-status').textContent = 'No cards are due.';
       return;
