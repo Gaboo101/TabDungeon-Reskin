@@ -78,7 +78,10 @@ export function createGameController($) {
       await saveGameState(gameState);
       renderHeader();
       if (!arena) renderContext(event.card, event.deck);
-      arena.playEffects(result.effects);
+      const effects = event.deckFinished
+        ? [...result.effects, { type: 'deckFinished' }]
+        : result.effects;
+      arena.playEffects(effects, event);
     }
   };
 }

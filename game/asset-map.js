@@ -46,7 +46,7 @@ const tinySwordsHero = {
   sheet: 'assets/game/Warrior_Blue.png',
   jsonUrl: 'assets/game/Warrior_Blue.json',
   displayScale: 0.5,
-  timeScale: 1.6,
+  timeScale: 1.2,
   facing: 'right',
   tags: {
     idle: { from: 0, to: 5 },
@@ -62,7 +62,7 @@ const tinySwordsMonster = {
   sheet: 'assets/game/Torch_Red.png',
   jsonUrl: 'assets/game/Torch_Red.json',
   displayScale: 0.5,
-  timeScale: 1.6,
+  timeScale: 1.2,
   facing: 'right',
   tags: {
     idle: { from: 0, to: 6 },
@@ -80,8 +80,8 @@ const tinySwordsDefeat = {
   jsonUrl: 'assets/game/Dead.json',
   displayScale: 0.5,
   facing: 'none',
-  timeScale: 2,
-  maxFrameMs: 120,
+  timeScale: 1.5,
+  maxFrameMs: 100,
   tags: {
     dead: { from: 0, to: 6 },
     buried: { from: 7, to: 13 }

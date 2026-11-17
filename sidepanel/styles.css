@@ -296,6 +296,15 @@ a {
   transform-origin: bottom center;
 }
 
+.game-arena-hit {
+  animation: game-arena-hit 260ms steps(2, end);
+}
+
+@keyframes game-arena-hit {
+  0%, 100% { filter: brightness(1); }
+  35%, 70% { filter: brightness(1.7) saturate(1.8) sepia(1) hue-rotate(300deg); }
+}
+
 .game-arena-miss {
   position: absolute;
   top: 26%;

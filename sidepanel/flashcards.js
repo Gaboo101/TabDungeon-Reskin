@@ -147,6 +147,10 @@ export function setupCards($, runtime, gameController) {
     state.cards = state.cards.map(card => card.id === activeCard.id ? updated : card);
     state.history.push({ cardId: activeCard.id, quality, reviewedAt: new Date().toISOString(), schedule: updated.schedule });
     await saveStudyState(state);
+    const repeatCard = Number(quality) === 1;
+    const deckFinished = testSession
+      ? !repeatCard && testSession.index >= testSession.cardIds.length - 1
+      : state.cards.filter(card => card.deckId === activeCard.deckId && isDue(card, now)).length === 0;
     const gameEvent = {
       cardId: activeCard.id,
       deckId: activeCard.deckId,
@@ -156,9 +160,9 @@ export function setupCards($, runtime, gameController) {
       dueRemainingInDeck: state.cards.filter(card => card.deckId === activeCard.deckId && isDue(card, now)).length,
       dailyDueCount: dueBeforeReview,
       exposureCredit: activeCard.exposureCredit || 0,
+      deckFinished,
       now
     };
-    const repeatCard = Number(quality) === 1;
     if (testSession) {
       if (repeatCard) {
         await safeGameReview(gameEvent);

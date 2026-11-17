@@ -172,49 +172,78 @@ export function renderArena(container, {
     setTimeout(() => miss.remove(), 900);
   }
 
-  function playEffects(effects = []) {
+  function showHit(target) {
+    if (!target?.element) return;
+    target.element.classList.remove('game-arena-hit');
+    void target.element.offsetWidth;
+    target.element.classList.add('game-arena-hit');
+    setTimeout(() => target.element.classList.remove('game-arena-hit'), 260);
+  }
+
+  function playEffects(effects = [], reviewEvent = null) {
     if (!effectsEnabled || reduceMotion) return;
+    if (pendingContext?.card?.id === reviewEvent?.cardId) pendingContext = null;
     const outcome = effects.find(effect => effect.type === 'defeated' || effect.type === 'escaped');
+    const deckFinished = effects.some(effect =>
+      effect.type === 'floorCleared' || effect.type === 'deckFinished'
+    );
     if (outcome && monster) {
+      function playDeathSequence() {
+        setTimeout(() => {
+          if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
+          if (isTinySwords) {
+            monster.destroy();
+            monster = createThemeSprite(
+              monsterSlot,
+              assets.defeat,
+              { ...spriteOptions(effectsEnabled, reduceMotion), scale: assets.defeat.displayScale }
+            );
+            monster.play('Dead', {
+              durationScale: EFFECT_DURATION_SCALE,
+              onDone: () => monster.play('Buried', {
+                durationScale: EFFECT_DURATION_SCALE,
+                onDone: () => finishMonster(false)
+              })
+            });
+            return;
+          }
+          monster.play('hurt', {
+            durationScale: EFFECT_DURATION_SCALE,
+            onDone: () => monster.play('death', {
+              durationScale: EFFECT_DURATION_SCALE,
+              onDone: finishMonster
+            })
+          });
+        }, 220);
+      }
+
       if (outcome.type === 'defeated') {
-        const attackTag = isTinySwords
-          ? (outcome.tier === 't3' || outcome.tier === 'boss' ? 'Attack_2' : 'Attack_1')
-          : (outcome.tier === 't3' || outcome.tier === 'boss' ? 'attack2' : 'attack1');
+        const attackTags = isTinySwords
+          ? ['Attack_1', 'Attack_2']
+          : [outcome.tier === 't3' || outcome.tier === 'boss' ? 'attack2' : 'attack1'];
         if (isTinySwords) {
           heroSlot.style.transition = 'transform 180ms ease-out';
           heroSlot.style.transform = 'translateX(18px)';
         }
-        hero.play(attackTag, {
-          durationScale: EFFECT_DURATION_SCALE,
-          onDone: () => {
-            if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
-            if (isTinySwords) {
-              monster.destroy();
-              monster = createThemeSprite(
-                monsterSlot,
-                assets.defeat,
-                { ...spriteOptions(effectsEnabled, reduceMotion), scale: assets.defeat.displayScale }
-              );
-              monster.play('Dead', {
-                durationScale: EFFECT_DURATION_SCALE,
-                onDone: () => monster.play('Buried', {
-                  durationScale: EFFECT_DURATION_SCALE,
-                  onDone: () => finishMonster(true)
-                })
-              });
-              return;
+        function playAttack(index) {
+          hero.play(attackTags[index], {
+            durationScale: EFFECT_DURATION_SCALE,
+            onDone: () => {
+              showHit(monster);
+              if (index < attackTags.length - 1) return playAttack(index + 1);
+              if (deckFinished) playDeathSequence();
+              else {
+                if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
+                hero.play('idle', { loop: true });
+                monster.play(isTinySwords ? 'idle' : 'move', { loop: true });
+              }
             }
-            monster.play('hurt', {
-              durationScale: EFFECT_DURATION_SCALE,
-              onDone: () => monster.play('death', {
-                durationScale: EFFECT_DURATION_SCALE,
-                onDone: finishMonster
-              })
-            });
-          }
-        });
+          });
+        }
+        playAttack(0);
       } else {
         showMiss();
+        showHit(monster);
         if (isTinySwords) {
           monsterSlot.style.transition = 'transform 180ms ease-out';
           monsterSlot.style.transform = 'translateX(-18px)';
