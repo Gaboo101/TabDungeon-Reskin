@@ -1,4 +1,4 @@
-export function setupSettings($, runtime) {
+export function setupSettings($, runtime, gameController) {
   const storage = globalThis.chrome?.storage?.local;
   let scale = 100;
   let devMode = false;
@@ -17,6 +17,12 @@ export function setupSettings($, runtime) {
       scale = result.guiScale || 100;
       $('scale-value').textContent = `${scale}%`;
       $('ai-toggle').checked = result.aiEnabled !== false;
+      $('game-effects').checked = result.gameEffects !== false;
+      $('reduce-motion').checked = result.reduceMotion === true;
+      gameController?.setOptions({
+        effectsEnabled: $('game-effects').checked,
+        reduceMotion: $('reduce-motion').checked
+      });
       $('api-key').value = result.apiKey || '';
       $('developer-mode').checked = result.devMode === true;
       setDeveloperVisibility($('developer-mode').checked);
@@ -33,6 +39,14 @@ export function setupSettings($, runtime) {
   $('scale-dec').addEventListener('click', () => changeScale(-10));
   $('scale-inc').addEventListener('click', () => changeScale(10));
   $('ai-toggle').addEventListener('change', event => save({ aiEnabled: event.target.checked }));
+  $('game-effects').addEventListener('change', event => {
+    gameController?.setOptions({ effectsEnabled: event.target.checked });
+    save({ gameEffects: event.target.checked });
+  });
+  $('reduce-motion').addEventListener('change', event => {
+    gameController?.setOptions({ reduceMotion: event.target.checked });
+    save({ reduceMotion: event.target.checked });
+  });
   $('save-key').addEventListener('click', () => {
     const key = $('api-key').value.trim();
     save({ apiKey: key });

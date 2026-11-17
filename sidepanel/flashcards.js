@@ -2,9 +2,27 @@ import { PARAMS } from '../core/params.js';
 import { calculateReview, isDue } from '../core/scheduler.js';
 import { loadStudyState, saveStudyState } from '../state/study-state.js';
 
-export function setupCards($, runtime) {
+export function setupCards($, runtime, gameController) {
   let state;
   let activeCard;
+  let testSession = null;
+
+  function safeGameCall(method, ...args) {
+    try {
+      return gameController?.[method]?.(...args);
+    } catch (error) {
+      console.error(`Game ${method} failed:`, error);
+      return undefined;
+    }
+  }
+
+  async function safeGameReview(event) {
+    try {
+      await gameController?.onReview?.(event);
+    } catch (error) {
+      console.error('Game review effect failed:', error);
+    }
+  }
 
   $('open-deck-manager').addEventListener('click', () => {
     const extensionUrl = globalThis.chrome?.runtime?.getURL('deck-manager/deck-manager.html');
@@ -48,36 +66,129 @@ export function setupCards($, runtime) {
     return row;
   }
 
-  function render() {
+  function render(skipGame = false) {
     const now = Date.now();
-    activeCard = state.cards
+    const dueCards = state.cards
       .filter(card => isDue(card, now))
-      .sort((a, b) => a.dueAt - b.dueAt)[0];
-    $('empty-card-state').hidden = Boolean(activeCard);
-    $('answer-card').hidden = !activeCard;
+      .sort((a, b) => a.dueAt - b.dueAt);
+    activeCard = null;
     $('review-actions').hidden = true;
     $('card-response').disabled = false;
     $('submit-card-answer').disabled = false;
     $('card-response').value = '';
     $('deck-list').textContent = '';
     state.decks.forEach(deck => $('deck-list').appendChild(renderDeckSummary(deck)));
-    if (!activeCard) {
-      $('review-status').textContent = 'No cards are due.';
+    $('answer-card').hidden = true;
+    $('exit-test').hidden = true;
+    $('empty-card-state').hidden = dueCards.length > 0;
+    $('test-card-controls').hidden = true;
+    $('due-card-state').hidden = dueCards.length === 0;
+    $('test-deck-select').textContent = '';
+    $('due-deck-select').textContent = '';
+    if (dueCards.length === 0) {
+      $('review-status').textContent = '';
+      if (!skipGame) safeGameCall('showEmpty');
       return;
     }
-    $('review-status').textContent = `${state.decks.find(deck => deck.id === activeCard.deckId)?.name || 'Deck'} · Due review`;
+    const dueDecks = state.decks.filter(deck => dueCards.some(card => card.deckId === deck.id));
+    dueDecks.forEach(deck => {
+      const option = document.createElement('option');
+      option.value = deck.id;
+      option.textContent = deck.name;
+      $('due-deck-select').appendChild(option);
+    });
+    $('review-status').textContent = 'Choose a deck to answer a due card.';
+    if (!skipGame) safeGameCall('showEmpty');
+  }
+
+  function showCard(card, label, skipGame = false) {
+    if (!card) return;
+    activeCard = card;
+    $('empty-card-state').hidden = true;
+    $('test-card-controls').hidden = true;
+    $('due-card-state').hidden = true;
+    $('answer-card').hidden = false;
+    $('exit-test').hidden = !testSession;
+    $('review-actions').hidden = true;
+    $('card-response').disabled = false;
+    $('submit-card-answer').disabled = false;
+    $('card-response').value = '';
     $('card-question').textContent = activeCard.front;
     $('card-answer').textContent = activeCard.back;
     $('card-answer').hidden = true;
+    $('review-status').textContent = label;
+    const deck = state.decks.find(item => item.id === activeCard.deckId);
+    safeGameCall(skipGame ? 'queueReview' : 'showReview', activeCard, deck);
+  }
+
+  function startDeckTest() {
+    const deck = state.decks.find(item => item.id === $('test-deck-select').value);
+    const cards = state.cards.filter(item => item.deckId === deck?.id);
+    if (!deck || cards.length === 0) return;
+    testSession = { deckId: deck.id, cardIds: cards.map(card => card.id), index: 0 };
+    showCard(cards[0], `${deck.name} · Practice test (1/${cards.length})`);
+  }
+
+  function showDueCard() {
+    const deck = state.decks.find(item => item.id === $('due-deck-select').value);
+    const card = state.cards
+      .filter(item => item.deckId === deck?.id && isDue(item, Date.now()))
+      .sort((a, b) => a.dueAt - b.dueAt)[0];
+    showCard(card, `${deck?.name || 'Deck'} · Due review`);
   }
 
   async function review(quality) {
     if (!activeCard) return;
     const deck = state.decks.find(item => item.id === activeCard.deckId);
-    const updated = calculateReview(activeCard, quality, { now: Date.now(), deck, params: PARAMS });
+    const now = Date.now();
+    const dueBeforeReview = state.cards.filter(card => card.deckId === activeCard.deckId && isDue(card, now)).length;
+    const tierCard = { ...activeCard };
+    const updated = calculateReview(activeCard, quality, { now, deck, params: PARAMS });
     state.cards = state.cards.map(card => card.id === activeCard.id ? updated : card);
     state.history.push({ cardId: activeCard.id, quality, reviewedAt: new Date().toISOString(), schedule: updated.schedule });
     await saveStudyState(state);
+    const gameEvent = {
+      cardId: activeCard.id,
+      deckId: activeCard.deckId,
+      card: tierCard,
+      deck,
+      quality,
+      dueRemainingInDeck: state.cards.filter(card => card.deckId === activeCard.deckId && isDue(card, now)).length,
+      dailyDueCount: dueBeforeReview,
+      exposureCredit: activeCard.exposureCredit || 0,
+      now
+    };
+    const repeatCard = Number(quality) === 1;
+    if (testSession) {
+      if (repeatCard) {
+        await safeGameReview(gameEvent);
+        showCard(updated, `${deck?.name || 'Deck'} · Practice test (repeat)`, true);
+        return;
+      }
+      testSession.index += 1;
+      const nextCard = state.cards.find(card => card.id === testSession.cardIds[testSession.index]);
+      if (nextCard) {
+        await safeGameReview(gameEvent);
+        showCard(nextCard, `${deck?.name || 'Deck'} · Practice test (${testSession.index + 1}/${testSession.cardIds.length})`, true);
+        return;
+      } else {
+        testSession = null;
+        render(true);
+      }
+    } else {
+      if (repeatCard) {
+        await safeGameReview(gameEvent);
+        showCard(updated, `${deck?.name || 'Deck'} · Again`, true);
+        return;
+      }
+      render(true);
+    }
+    await safeGameReview(gameEvent);
+  }
+
+  function exitTest() {
+    testSession = null;
+    activeCard = null;
     render();
   }
 
@@ -95,6 +206,24 @@ export function setupCards($, runtime) {
     $('review-status').textContent = 'Answer submitted. How well did you recall it?';
   });
   document.querySelectorAll('.quality-button').forEach(button => button.addEventListener('click', () => review(Number(button.dataset.quality))));
+  $('show-test-options').addEventListener('click', () => {
+    const select = $('test-deck-select');
+    select.textContent = '';
+    state.decks
+      .filter(deck => state.cards.some(card => card.deckId === deck.id))
+      .forEach(deck => {
+        const option = document.createElement('option');
+        option.value = deck.id;
+        option.textContent = deck.name;
+        select.appendChild(option);
+      });
+    $('start-deck-test').disabled = select.options.length === 0;
+    $('empty-card-state').hidden = true;
+    $('test-card-controls').hidden = false;
+  });
+  $('start-deck-test').addEventListener('click', startDeckTest);
+  $('show-due-card').addEventListener('click', showDueCard);
+  $('exit-test').addEventListener('click', exitTest);
   $('add-deck').addEventListener('click', async () => {
     const name = $('new-deck-name').value.trim();
     if (!name) {
