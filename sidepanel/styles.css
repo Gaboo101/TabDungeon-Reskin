@@ -247,7 +247,6 @@ a {
 .game-arena {
   position: relative;
   min-height: 92px;
-  margin-bottom: 8px;
   overflow: hidden;
   background: var(--granite);
   border: 2px solid var(--ink);

@@ -1,4 +1,4 @@
-import { applyReview, levelFromXp, xpToNextLevel } from './game-rules.js';
+import { applyReview, levelFromXp } from './game-rules.js';
 import { loadGameState, saveGameState } from './game-state.js';
 import { renderArena } from './arena.js';
 
@@ -18,12 +18,8 @@ export function createGameController($) {
       ? 0
       : ((gameState.xp - previousLevelXp) / (nextLevelXp - previousLevelXp)) * 100;
     $('game-level').textContent = `Level ${level}`;
-    $('game-xp').textContent = `${gameState.xp} XP · ${xpToNextLevel(gameState.xp)} to next`;
     $('game-xp-bar').style.width = `${Math.max(0, Math.min(100, progress))}%`;
     $('game-streak').textContent = `Streak ${gameState.streak.current}`;
-    $('adventure-defeated').textContent = `Cards defeated: ${gameState.stats.cardsDefeated}`;
-    $('adventure-bosses').textContent = `Bosses defeated: ${gameState.stats.bossesDefeated}`;
-    $('adventure-best-streak').textContent = `Best streak: ${gameState.stats.bestStreak}`;
   }
 
   function renderVisibility() {

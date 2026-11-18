@@ -15,13 +15,12 @@
       </header>
       <main class="content" id="content-panel">
         <section class="panel active" id="stats-panel">
+          <div id="review-arena" class="game-arena" aria-label="Study arena"></div>
           <div class="game-header-strip">
             <strong id="game-level">Level 1</strong>
             <div class="game-xp-track"><span id="game-xp-bar"></span></div>
-            <small id="game-xp">0 XP · 50 to next</small>
             <strong id="game-streak">Streak 0</strong>
           </div>
-          <div class="classification-card"><strong id="classification-status">Study session active</strong><span id="status-message">Exposure is tracked locally.</span></div>
           <div class="session-stats">
             <span id="study-exposure">Study exposure: 0m</span>
             <span id="due-cards">Due cards: 0</span>
@@ -29,12 +28,9 @@
             <span id="tab-count">New tabs: 0</span>
           </div>
           <h2>Active study context</h2><div id="tabs-list" class="tabs-list"><span>Loading...</span></div>
-          <section class="review-section">
             <div class="review-heading">
-              <h2>Due flashcard</h2>
               <button id="exit-test" class="exit-test" type="button" aria-label="Exit flashcard test" hidden>×</button>
             </div>
-            <div id="review-arena" class="game-arena" aria-label="Study arena"></div>
             <div id="review-status" class="review-status">Loading your next review...</div>
             <div id="empty-card-state" class="drawn-card" hidden>
               <button id="show-test-options" type="button">Test a card</button>
@@ -68,13 +64,6 @@
               </div>
             </div>
           </section>
-          <section id="adventure-log" class="adventure-log">
-            <h2>Adventure log</h2>
-            <span id="adventure-defeated">Cards defeated: 0</span>
-            <span id="adventure-bosses">Bosses defeated: 0</span>
-            <span id="adventure-best-streak">Best streak: 0</span>
-          </section>
-        </section>
         <section class="panel" id="guide-panel" hidden>
           <p class="panel-title">Guide Chat</p>
           <div id="chat-messages" class="chat-messages"><div class="chat-message guide"><strong>Guide:</strong> Welcome back, traveler. Ask me about your focus quest, this session, or the path ahead.</div></div>
