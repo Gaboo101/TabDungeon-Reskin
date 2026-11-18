@@ -610,8 +610,8 @@ small,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin: 10px 0;
+  gap: 6px;
+  margin: 12px 0;
 }
 
 .setting-row > * {
@@ -665,8 +665,8 @@ small,
 .footer-nav-item {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 48px;
+  width: 80px;
+  height: 60px;
   background: var(--paper);
   border: 2px solid var(--ink);
   box-shadow: 3px 3px 0 var(--wood-dark);
