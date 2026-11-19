@@ -21,15 +21,9 @@
             <div class="game-xp-track"><span id="game-xp-bar"></span></div>
             <strong id="game-streak">Streak 0</strong>
           </div>
-          <div class="session-stats">
-            <span id="study-exposure">Study exposure: 0m</span>
-            <span id="due-cards">Due cards: 0</span>
-            <span id="session-time">Session: 0m</span>
-            <span id="tab-count">New tabs: 0</span>
-          </div>
           <h2>Active study context</h2><div id="tabs-list" class="tabs-list"><span>Loading...</span></div>
             <div class="review-heading">
-              <button id="exit-test" class="exit-test" type="button" aria-label="Exit flashcard test" hidden>×</button>
+              <button id="exit-test" class="exit-test" type="button" aria-label="Exit flashcard test" hidden></button>
             </div>
             <div id="review-status" class="review-status">Loading your next review...</div>
             <div id="empty-card-state" class="drawn-card" hidden>
@@ -100,6 +94,10 @@
           </div>
         </section>
       </main>
+        <div class="session-stats">
+          <span id="due-cards">Due cards: 0</span>
+          <span id="session-time">Session: 0m</span>
+        </div>
       <nav class="footer-nav" aria-label="Main navigation">
         <div class="footer-nav-item"><a href="#stats-panel" class="footer-nav-link active" data-panel="stats-panel" aria-label="Stats"><img src="../assets/sprites/icon_stats.png" alt="Stats" class="sprite"></a></div>
         <div class="footer-nav-item"><a href="#guide-panel" class="footer-nav-link" data-panel="guide-panel" aria-label="Guide"><img src="../assets/sprites/icon_chat.png" alt="Guide" class="sprite"></a></div>

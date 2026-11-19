@@ -522,15 +522,20 @@ small,
   font-size: 15px;
 }
 
+.tabs-list {
+  color: var(--paper-light);
+}
+
 .session-stats,
 .tabs-list,
 .chat-messages {
   display: grid;
-  gap: 6px;
 }
 
 .session-stats {
+  -webskit-text-stroke: 3px var(--wood-dark);
   grid-template-columns: 1fr 1fr;
+  color: var(--paper-light);
   font-size: 12px;
   text-align: center;
 }
@@ -538,7 +543,7 @@ small,
 .session-stats span,
 .tab-row {
   padding: 6px;
-  background: rgba(255, 255, 255, .4);
+  background: var(--dark-cyan);
 }
 
 .tab-row {
