@@ -66,6 +66,49 @@ const countedTabIds = new Set();
 let deckModelCache = null;
 let deckModelSignature = '';
 
+async function getDeckModels(studyState = null) {
+  const state = studyState || (await chrome.storage.local.get('studyState')).studyState || { decks: [], cards: [] };
+  const signature = JSON.stringify({
+    decks: (state.decks || []).map(deck => ({
+      id: deck.id,
+      name: deck.name,
+      description: deck.description,
+      keywords: deck.keywords,
+      examDate: deck.examDate
+    })),
+    cards: (state.cards || []).map(card => ({
+      id: card.id,
+      deckId: card.deckId,
+      front: card.front,
+      back: card.back
+    }))
+  });
+  if (deckModelCache && deckModelSignature === signature) return deckModelCache;
+  const stored = await chrome.storage.local.get(['relevanceDeckModels', 'relevanceDeckModelsSignature']);
+  if (stored.relevanceDeckModelsSignature === signature && Array.isArray(stored.relevanceDeckModels)) {
+    deckModelCache = stored.relevanceDeckModels;
+    deckModelSignature = signature;
+    return deckModelCache;
+  }
+  deckModelCache = (state.decks || []).map(deck => buildDeckModel(
+    (state.cards || []).filter(card => card.deckId === deck.id),
+    { ...deck, description: deck.description, keywords: deck.keywords }
+  ));
+  deckModelSignature = signature;
+  await chrome.storage.local.set({
+    relevanceDeckModels: deckModelCache,
+    relevanceDeckModelsSignature: signature
+  });
+  return deckModelCache;
+}
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes.studyState) {
+    deckModelCache = null;
+    deckModelSignature = '';
+  }
+});
+
 // Listen for messages from side panel
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'chatWithGuide') {
@@ -103,7 +146,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'scoreRelevance') {
     getDeckModels().then(models => sendResponse({
       success: true,
-      result: scoreRelevance(request.metadata || {}, models.find(model => model.deckId === request.deckId))
+      result: scoreRelevance(request.metadata || {}, models.find(model => model.deckId === request.deckId), PARAMS)
     })).catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
@@ -364,7 +407,7 @@ async function flushExposure() {
   const pageMetadata = activePage.metadata;
   for (const deck of studyState.decks || []) {
     const cards = (studyState.cards || []).filter(card => card.deckId === deck.id);
-    const relevance = scoreRelevance(pageMetadata, models.find(model => model.deckId === deck.id));
+    const relevance = scoreRelevance(pageMetadata, models.find(model => model.deckId === deck.id), PARAMS);
     const key = `${day}:${deck.id}:${hashUrl(activePage.url)}`;
     if (relevance.label !== 'related' || visits[key]) continue;
     visits[key] = true;
@@ -447,49 +490,6 @@ async function getAllTabsInfo(sendResponse) {
   if (sendResponse) {
     sendResponse({ success: true, tabs: tabsWithDecks });
   }
-
-  async function getDeckModels(studyState = null) {
-    const state = studyState || (await chrome.storage.local.get('studyState')).studyState || { decks: [], cards: [] };
-    const signature = JSON.stringify({
-      decks: (state.decks || []).map(deck => ({
-        id: deck.id,
-        name: deck.name,
-        description: deck.description,
-        keywords: deck.keywords,
-        examDate: deck.examDate
-      })),
-      cards: (state.cards || []).map(card => ({
-        id: card.id,
-        deckId: card.deckId,
-        front: card.front,
-        back: card.back
-      }))
-    });
-    if (deckModelCache && deckModelSignature === signature) return deckModelCache;
-    const stored = await chrome.storage.local.get(['relevanceDeckModels', 'relevanceDeckModelsSignature']);
-    if (stored.relevanceDeckModelsSignature === signature && Array.isArray(stored.relevanceDeckModels)) {
-      deckModelCache = stored.relevanceDeckModels;
-      deckModelSignature = signature;
-      return deckModelCache;
-    }
-    deckModelCache = (state.decks || []).map(deck => buildDeckModel(
-      (state.cards || []).filter(card => card.deckId === deck.id),
-      { ...deck, description: deck.description, keywords: deck.keywords }
-    ));
-    deckModelSignature = signature;
-    await chrome.storage.local.set({
-      relevanceDeckModels: deckModelCache,
-      relevanceDeckModelsSignature: signature
-    });
-    return deckModelCache;
-  }
-
-  chrome.storage.onChanged.addListener((changes, areaName) => {
-    if (areaName === 'local' && changes.studyState) {
-      deckModelCache = null;
-      deckModelSignature = '';
-    }
-  });
 }
 
 // Initialize when extension loads
