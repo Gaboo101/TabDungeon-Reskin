@@ -10,6 +10,8 @@ export const PARAMS = Object.freeze({
   CREDIT_CAP: 1,
   GAMMA: 0.2,
   MAX_MULT: 1.25,
+  // PROVISIONAL effective max multiplier: min(MAX_MULT, 1 + GAMMA * CREDIT_CAP)
+  // = min(1.25, 1 + 0.2 * 1) = 1.20.
   MIN_MULT: 0.8,
   E0: 0.25,
   K_REVIEWS: 3,

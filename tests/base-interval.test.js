@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { calculateReview } from '../core/scheduler.js';
+import { PARAMS } from '../core/params.js';
 import { createCard, loadStudyState } from '../state/study-state.js';
 
 test('credit-adjusted interval uses a separate baseInterval chain', () => {
@@ -43,4 +44,9 @@ test('deadline cap can reduce an adjusted interval below the base interval', () 
 test('study card migration initializes baseInterval from interval', () => {
   assert.equal(createCard({ interval: 12 }).baseInterval, 12);
   assert.equal(createCard({ interval: 12, baseInterval: 10 }).baseInterval, 10);
+});
+
+test('effective exposure interval max is 1.20', () => {
+  const effectiveMax = Math.min(PARAMS.MAX_MULT, 1 + PARAMS.GAMMA * PARAMS.CREDIT_CAP);
+  assert.equal(effectiveMax, 1.2);
 });

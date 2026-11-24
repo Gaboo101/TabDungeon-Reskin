@@ -32,3 +32,8 @@
 
 - **Before:** The Naive Bayes domain denominator used `Object.keys(model.counts).length`, which was 3 for the label table rather than the number of distinct domains.
 - **After:** Training stores `domainCount` and sorted distinct domains; prediction uses `domainCount` as the Laplace denominator and assigns unseen domains no observed count.
+
+## 2.7 Exposure multiplier documentation
+
+- **Provisional constants:** `MAX_MULT=1.25`, `GAMMA=0.2`, and `CREDIT_CAP=1`.
+- **Effective maximum:** `min(MAX_MULT, 1 + GAMMA * CREDIT_CAP) = min(1.25, 1.20) = 1.20`.
