@@ -45,6 +45,9 @@ test('loadStudyState preserves a non-original stored state', async () => {
   };
   const storage = createStorage(storedState);
 
-  assert.equal(await loadStudyState(storage), storedState);
-  assert.equal(storage.writes.length, 0);
+  const loaded = await loadStudyState(storage);
+  assert.equal(loaded.decks[0].id, 'custom-deck');
+  assert.equal(loaded.cards[0].id, 'custom-card');
+  assert.equal(loaded.cards[0].baseInterval, 0);
+  assert.equal(storage.writes.length, 1);
 });

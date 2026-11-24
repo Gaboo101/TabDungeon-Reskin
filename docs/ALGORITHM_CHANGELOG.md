@@ -21,3 +21,9 @@
 
 - **Before:** Every token ending in `s` was reduced to remove the last character, producing `class -> clas`, `classes -> classe`, `process -> proces`, and `processes -> processe`.
 - **After:** `sses` plurals remove `es`, while final `s` is preserved after `ss`, `us`, and `is`. `class`/`process`/`analysis` remain intact and their plural forms map deterministically to the singular.
+
+## 2.5 SM-2 base interval
+
+- **Before:** `card.interval` stored both the plain SM-2 chain interval and the exposure-adjusted interval, allowing credit to compound on later reviews.
+- **After:** `card.baseInterval` holds the unadjusted chain; `card.interval` holds the final adjusted/due interval. Missing `baseInterval` values migrate to the stored `interval`.
+- **Deadline behavior:** The exam-date cap is allowed to reduce the interval below the base interval.

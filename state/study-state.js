@@ -6,6 +6,9 @@ export function createCard(card) {
   return {
     ...card,
     interval: card.interval || 0,
+    baseInterval: Number.isFinite(card.baseInterval)
+      ? card.baseInterval
+      : (card.interval || 0),
     repetitions: card.repetitions || 0,
     easeFactor: card.easeFactor || 2.5,
     dueAt: card.dueAt || 0,
@@ -25,6 +28,16 @@ function isOriginalSeed(state) {
   return deckIds === 'focus,web' && cardIds === 'focus-1,focus-2,web-1';
 }
 
+function migrateCardIntervals(state) {
+  let changed = false;
+  const cards = (state.cards || []).map(card => {
+    if (Number.isFinite(card.baseInterval)) return card;
+    changed = true;
+    return createCard(card);
+  });
+  return { state: { ...state, cards }, changed };
+}
+
 export async function loadStudyState(storage = globalThis.chrome?.storage?.local) {
   if (!storage) return createDefaultState();
 
@@ -35,7 +48,9 @@ export async function loadStudyState(storage = globalThis.chrome?.storage?.local
       await saveStudyState(state, storage);
       return state;
     }
-    return result[STORAGE_KEY];
+    const migrated = migrateCardIntervals(result[STORAGE_KEY]);
+    if (migrated.changed) await saveStudyState(migrated.state, storage);
+    return migrated.state;
   }
 
   const state = createDefaultState();
