@@ -75,7 +75,7 @@ function main(csvPath, decksPath) {
     label === 'learning' ? 'related' : label === 'non-learning' ? 'unrelated' : 'uncertain');
   confusionReport('Old task-blind baseline', actual, baseline);
 
-  let best = { f1: -1, hi: 0.25, lo: 0.08 };
+  let best = { f1: -1, hi: PARAMS.T_HI, lo: PARAMS.T_LO };
   for (let hi = 0.1; hi <= 0.6; hi += 0.05) for (let lo = 0; lo < hi; lo += 0.02) {
     const predicted = rows.map(row => scoreRelevance(row, models[row.deckId], { ...PARAMS, T_HI: hi, T_LO: lo }).label);
     const result = metrics(actual, predicted);

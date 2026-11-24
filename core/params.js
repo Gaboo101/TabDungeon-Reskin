@@ -4,8 +4,9 @@ export const PARAMS = Object.freeze({
   MIN_PAGE_TOKENS: 3,
   T_FULL: 120,
   LAMBDA: 0.5,
-  T_HI: 0.18,
-  T_LO: 0.06,
+  // PROVISIONAL threshold tuning from the current 6-row sample after off-topic norm.
+  T_HI: 0.15,
+  T_LO: 0.05,
   CREDIT_CAP: 1,
   GAMMA: 0.2,
   MAX_MULT: 1.25,

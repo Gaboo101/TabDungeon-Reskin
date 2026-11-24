@@ -48,6 +48,33 @@ const vectorForTokens = (tokens, vocabulary, idf) => {
   return normalize(vocabulary.map((term, index) => (counts.get(term) || 0) * idf[index]));
 };
 
+const pageVectorWithOffTopic = (tokens, vocabulary, idf) => {
+  const counts = new Map();
+  for (const token of tokens) counts.set(token, (counts.get(token) || 0) + 1);
+  const maxIdf = idf.length ? Math.max(...idf) : 1;
+  const weights = [];
+  const offTopicTerms = [];
+  let pageMagnitudeSquared = 0;
+  for (const [term, count] of counts) {
+    const deckIndex = vocabulary.indexOf(term);
+    if (deckIndex >= 0) {
+      weights[deckIndex] = (weights[deckIndex] || 0) + count * idf[deckIndex];
+    } else {
+      offTopicTerms.push(term);
+      pageMagnitudeSquared += (count * maxIdf) ** 2;
+    }
+  }
+  for (let index = 0; index < vocabulary.length; index += 1) {
+    const weight = weights[index] || 0;
+    pageMagnitudeSquared += weight ** 2;
+  }
+  return {
+    vector: vocabulary.map((_, index) => weights[index] || 0),
+    pageMagnitude: Math.sqrt(pageMagnitudeSquared),
+    offTopicTerms: [...new Set(offTopicTerms)].sort()
+  };
+};
+
 export function buildDeckModel(cards = [], deckMeta = {}) {
   const cardList = Array.isArray(cards) ? cards : [];
   const documents = cardList.map(card => tokenize(`${card?.front || ''} ${card?.back || ''}`));
@@ -76,17 +103,25 @@ export function buildDeckModel(cards = [], deckMeta = {}) {
   };
 }
 
-export function scoreRelevance(metadata, deckModel, params = PARAMS) {
+export function scoreRelevance(metadata, deckModel, params = PARAMS, options = {}) {
   const pageTokens = tokenize(pageText(metadata));
   if (!deckModel || pageTokens.length < (params.MIN_PAGE_TOKENS ?? PARAMS.MIN_PAGE_TOKENS)) {
     return { score: 0, label: 'uncertain', matchedTerms: [] };
   }
   const vocabulary = Array.isArray(deckModel.vocabulary) ? deckModel.vocabulary : [];
   const idf = Array.isArray(deckModel.idf) ? deckModel.idf : [];
-  const pageVector = vectorForTokens(pageTokens, vocabulary, idf);
   const deckVector = Array.isArray(deckModel.vector) ? deckModel.vector : [];
-  const pageMagnitude = Math.sqrt(pageVector.reduce((sum, value) => sum + value * value, 0));
   const deckMagnitude = Math.sqrt(deckVector.reduce((sum, value) => sum + value * value, 0));
+  let pageVector;
+  let pageMagnitude;
+  if (options.normalizeOffTopic === false) {
+    pageVector = vectorForTokens(pageTokens, vocabulary, idf);
+    pageMagnitude = Math.sqrt(pageVector.reduce((sum, value) => sum + value * value, 0));
+  } else {
+    const withOffTopic = pageVectorWithOffTopic(pageTokens, vocabulary, idf);
+    pageVector = withOffTopic.vector;
+    pageMagnitude = withOffTopic.pageMagnitude;
+  }
   const rawScore = pageMagnitude && deckMagnitude
     ? pageVector.reduce((sum, value, index) => sum + value * (deckVector[index] || 0), 0) / (pageMagnitude * deckMagnitude)
     : 0;

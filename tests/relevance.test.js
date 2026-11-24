@@ -46,6 +46,29 @@ test('music and shopping pages are not related', () => {
   }
 });
 
+test('off-topic page words reduce cosine similarity', () => {
+  const deck = buildDeckModel([
+    { id: 'algorithms', front: 'Binary search algorithms', back: 'Sorting and trees' },
+    { id: 'course', front: 'Computer science course', back: 'Programming module exercises' }
+  ], { id: 'learning' });
+  const gymPage = {
+    title: 'Gym module',
+    description: 'Fitness equipment, workout songs, sports nutrition',
+    headings: ['Gym schedule']
+  };
+  const oldBehavior = scoreRelevance(gymPage, deck, PARAMS, { normalizeOffTopic: false });
+  const newBehavior = scoreRelevance(gymPage, deck);
+  assert.notEqual(newBehavior.label, 'related');
+  assert.ok(newBehavior.score <= oldBehavior.score);
+});
+
+test('normalizeOffTopic comparison option preserves the legacy page norm', () => {
+  const page = { title: 'Binary tree module', description: 'Gym music shopping' };
+  const legacy = scoreRelevance(page, dataDeck, PARAMS, { normalizeOffTopic: false });
+  const normalized = scoreRelevance(page, dataDeck);
+  assert.ok(normalized.score <= legacy.score);
+});
+
 test('empty metadata is uncertain with zero score', () => {
   assert.deepEqual(scoreRelevance({}, dataDeck), { score: 0, label: 'uncertain', matchedTerms: [] });
 });
