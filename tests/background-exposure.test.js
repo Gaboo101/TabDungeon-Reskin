@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import fs from 'node:fs';
-import { advanceTrackingState, createTrackingState, isTrackingEligible } from '../core/exposure.js';
+import {
+  accumulateExposureVisit,
+  advanceTrackingState,
+  calculateExposureCreditIncrement,
+  createTrackingState,
+  isTrackingEligible,
+  pruneExposureVisits
+} from '../core/exposure.js';
 
 const source = fs.readFileSync(new URL('../background/index.js', import.meta.url), 'utf8');
 
@@ -49,4 +56,64 @@ test('idle and unfocused tracking are ineligible', () => {
   assert.equal(isTrackingEligible({ idleState: 'active', focusedWindowId: 3, trackingState }), true);
   assert.ok(source.includes('async function isTrackedPageActive()'));
   assert.ok(source.includes('activeTabs.some(tab => tab.id === activePage.tabId)'));
+});
+
+test('dwell credit accumulates by stay and caps at full dwell', () => {
+  const params = { MIN_DWELL: 30, T_FULL: 120, LAMBDA: 0.5 };
+  assert.equal(calculateExposureCreditIncrement({
+    previousDwellMs: 0,
+    totalDwellMs: 29 * 1000,
+    score: 1,
+    params
+  }), 0);
+  assert.ok(Math.abs(calculateExposureCreditIncrement({
+    previousDwellMs: 0,
+    totalDwellMs: 30 * 1000,
+    score: 0.8,
+    params
+  }) - 0.1) < 1e-12);
+  let visits = {};
+  const first = accumulateExposureVisit(visits, {
+    dayKey: '2026-11-24',
+    deckId: 'deck-1',
+    urlHash: 'abc',
+    dwellIncrementMs: 60 * 1000,
+    score: 0.8,
+    params
+  });
+  visits = first.visits;
+  assert.ok(first.credit > 0);
+  assert.equal(visits['2026-11-24:deck-1:abc'].dwellMs, 60 * 1000);
+  const second = accumulateExposureVisit(visits, {
+    dayKey: '2026-11-24',
+    deckId: 'deck-1',
+    urlHash: 'abc',
+    dwellIncrementMs: 120 * 1000,
+    score: 0.8,
+    params
+  });
+  assert.equal(second.visits['2026-11-24:deck-1:abc'].dwellMs, 180 * 1000);
+  assert.ok(second.credit >= 0);
+  const third = accumulateExposureVisit(second.visits, {
+    dayKey: '2026-11-24',
+    deckId: 'deck-1',
+    urlHash: 'abc',
+    dwellIncrementMs: 60 * 1000,
+    score: 0.8,
+    params
+  });
+  assert.equal(third.credit, 0);
+});
+
+test('exposure visits are pruned after seven days', () => {
+  const visits = {
+    '2026-11-17:deck-1:abc': { dwellMs: 30000, awardedMs: 30000 },
+    '2026-11-18:deck-1:def': { dwellMs: 30000, awardedMs: 30000 },
+    '2026-11-24:deck-1:ghi': { dwellMs: 30000, awardedMs: 30000 }
+  };
+  const pruned = pruneExposureVisits(visits, '2026-11-24');
+  assert.deepEqual(Object.keys(pruned).sort(), [
+    '2026-11-18:deck-1:def',
+    '2026-11-24:deck-1:ghi'
+  ]);
 });

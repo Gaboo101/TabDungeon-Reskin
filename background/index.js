@@ -9,7 +9,13 @@ import {
   scoreRelevance
 } from '../core/relevance.js';
 import { PARAMS, clamp } from '../core/params.js';
-import { advanceTrackingState, createTrackingState, isTrackingEligible } from '../core/exposure.js';
+import {
+  accumulateExposureVisit,
+  advanceTrackingState,
+  createTrackingState,
+  isTrackingEligible,
+  pruneExposureVisits
+} from '../core/exposure.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 const MODEL = 'gemini-3.5-flash-lite';
@@ -466,18 +472,29 @@ async function flushExposure() {
   const stats = state.studyStats || { exposureMs: 0, tabsVisited: 0, dueCards: 0, startTime: Date.now() };
   const models = await getDeckModels(studyState);
   const pageMetadata = activePage.metadata;
+  visits = pruneExposureVisits(visits, day);
+  let countedExposureDwell = false;
   for (const deck of studyState.decks || []) {
     const cards = (studyState.cards || []).filter(card => card.deckId === deck.id);
     const relevance = scoreRelevance(pageMetadata, models.find(model => model.deckId === deck.id), PARAMS);
-    const key = `${day}:${deck.id}:${hashUrl(activePage.urlKey || '')}`;
-    if (relevance.label !== 'related' || visits[key]) continue;
-    visits[key] = true;
-    const credit = PARAMS.LAMBDA * relevance.score * Math.min(dwell / (PARAMS.T_FULL * 1000), 1);
+    if (relevance.label !== 'related') continue;
+    const accumulated = accumulateExposureVisit(visits, {
+      dayKey: day,
+      deckId: deck.id,
+      urlHash: hashUrl(activePage.urlKey || ''),
+      dwellIncrementMs: dwell,
+      score: relevance.score,
+      params: PARAMS
+    });
+    visits = accumulated.visits;
+    const credit = accumulated.credit;
+    if (credit <= 0) continue;
     for (const card of cards) {
       card.exposureCredit = clamp((card.exposureCredit || 0) + credit, 0, PARAMS.CREDIT_CAP);
     }
-    stats.exposureMs += dwell;
+    countedExposureDwell = true;
   }
+  if (countedExposureDwell) stats.exposureMs += dwell;
   await chrome.storage.local.set({ studyState, exposureVisits: visits, studyStats: stats });
 }
 
