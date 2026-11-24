@@ -19,6 +19,13 @@ test('tokenizer removes stopwords, short words, and numbers', () => {
   assert.deepEqual(tokenize('Ang a tree and 123 in algorithms'), ['tree', 'algorithm']);
 });
 
+test('tokenizer removes question and auxiliary words', () => {
+  assert.deepEqual(
+    tokenize('what how does this binary tree work where when who why has have had can will not about between only through there their into than then'),
+    ['binary', 'tree', 'work']
+  );
+});
+
 test('binary-tree page is related to data structures', () => {
   const result = scoreRelevance({
     title: 'Binary tree traversal',

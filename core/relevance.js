@@ -6,7 +6,10 @@ const STOPWORDS = new Set([
   'to', 'was', 'were', 'with', 'you', 'your', 'i', 'we', 'they', 'he', 'she',
   'ang', 'ng', 'sa', 'na', 'at', 'ay', 'mga', 'ito', 'iyon', 'para', 'kung',
   'ako', 'ikaw', 'ka', 'siya', 'kami', 'tayo', 'kayo', 'sila', 'may', 'pag',
-  'dahil', 'hindi', 'isang', 'mga'
+  'dahil', 'hindi', 'isang', 'mga',
+  'what', 'how', 'does', 'did', 'do', 'which', 'when', 'where', 'who', 'why',
+  'has', 'have', 'had', 'can', 'will', 'not', 'about', 'between', 'only',
+  'through', 'there', 'their', 'into', 'than', 'then'
 ]);
 
 const fields = metadata => [
