@@ -20,28 +20,42 @@ const fields = metadata => [
 ].filter(value => typeof value === 'string' && value.trim());
 
 export function tokenize(text = '') {
-  return String(text).toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(token => token.length >= 3 && !/^\d+$/.test(token) && !STOPWORDS.has(token))
-    .map(token => {
-      if (token.length > 5 && token.endsWith('ing')) return token.slice(0, -3);
-      if (token.length > 4 && token.endsWith('ed')) return token.slice(0, -2);
-      if (token.endsWith('sses') && token.length > 5) return token.slice(0, -2);
-      if (
-        token.length > 4 &&
-        token.endsWith('s') &&
-        !token.endsWith('ss') &&
-        !token.endsWith('us') &&
-        !token.endsWith('is')
-      ) return token.slice(0, -1);
-      return token;
-    })
-    .filter(token => token.length >= 3);
+  return explainTokens(text).filter(entry => entry.kept).map(entry => entry.stemmed);
 }
 
 export function pageText(metadata = {}) {
   const title = typeof metadata.title === 'string' ? metadata.title : '';
   return [title, title, ...fields({ ...metadata, title: undefined })].join(' ');
+}
+
+const explainToken = rawValue => {
+  const raw = String(rawValue).toLowerCase();
+  if (!raw) return { raw, kept: false, reason: 'empty', stemmed: '' };
+  if (!/^[a-z0-9]+$/.test(raw)) return { raw, kept: false, reason: 'not-alphanumeric', stemmed: '' };
+  if (raw.length < 3) return { raw, kept: false, reason: 'too-short', stemmed: '' };
+  if (/^\d+$/.test(raw)) return { raw, kept: false, reason: 'pure-number', stemmed: '' };
+  if (STOPWORDS.has(raw)) return { raw, kept: false, reason: 'stopword', stemmed: '' };
+  let stemmed = raw;
+  if (stemmed.length > 5 && stemmed.endsWith('ing')) stemmed = stemmed.slice(0, -3);
+  else if (stemmed.length > 4 && stemmed.endsWith('ed')) stemmed = stemmed.slice(0, -2);
+  else if (stemmed.endsWith('sses') && stemmed.length > 5) stemmed = stemmed.slice(0, -2);
+  else if (
+    stemmed.length > 4 &&
+    stemmed.endsWith('s') &&
+    !stemmed.endsWith('ss') &&
+    !stemmed.endsWith('us') &&
+    !stemmed.endsWith('is')
+  ) stemmed = stemmed.slice(0, -1);
+  if (stemmed.length < 3) return { raw, kept: false, reason: 'stem-too-short', stemmed };
+  return { raw, kept: true, reason: 'kept', stemmed };
+};
+
+export function explainTokens(text = '') {
+  return String(text)
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map(explainToken)
+    .filter(entry => entry.raw);
 }
 
 const normalize = vector => {
@@ -110,17 +124,33 @@ export function buildDeckModel(cards = [], deckMeta = {}) {
   };
 }
 
-export function scoreRelevance(metadata, deckModel, params = PARAMS, options = {}) {
-  const pageTokens = tokenize(pageText(metadata));
-  if (!deckModel || pageTokens.length < (params.MIN_PAGE_TOKENS ?? PARAMS.MIN_PAGE_TOKENS)) {
-    return { score: 0, label: 'uncertain', matchedTerms: [] };
+function internalRelevance(metadata, deckModel, params = PARAMS, options = {}) {
+  const textTokens = explainTokens(pageText(metadata));
+  const pageTokens = textTokens.filter(entry => entry.kept).map(entry => entry.stemmed);
+  const minPageTokens = params.MIN_PAGE_TOKENS ?? PARAMS.MIN_PAGE_TOKENS;
+  const vocabulary = Array.isArray(deckModel?.vocabulary) ? deckModel.vocabulary : [];
+  const idf = Array.isArray(deckModel?.idf) ? deckModel.idf : [];
+  const deckVector = Array.isArray(deckModel?.vector) ? deckModel.vector : [];
+  if (!deckModel || pageTokens.length < minPageTokens) {
+    return {
+      tokens: textTokens,
+      deckVocabularySize: vocabulary.length,
+      rows: [],
+      offTopicTerms: [],
+      pageNorm: 0,
+      deckNorm: 0,
+      dot: 0,
+      cosine: 0,
+      thresholds: { T_HI: params.T_HI ?? PARAMS.T_HI, T_LO: params.T_LO ?? PARAMS.T_LO },
+      label: 'uncertain',
+      matchedTerms: [],
+      formula: 'cos = (A.B)/(|A||B|)'
+    };
   }
-  const vocabulary = Array.isArray(deckModel.vocabulary) ? deckModel.vocabulary : [];
-  const idf = Array.isArray(deckModel.idf) ? deckModel.idf : [];
-  const deckVector = Array.isArray(deckModel.vector) ? deckModel.vector : [];
   const deckMagnitude = Math.sqrt(deckVector.reduce((sum, value) => sum + value * value, 0));
   let pageVector;
   let pageMagnitude;
+  let offTopicTerms = [];
   if (options.normalizeOffTopic === false) {
     pageVector = vectorForTokens(pageTokens, vocabulary, idf);
     pageMagnitude = Math.sqrt(pageVector.reduce((sum, value) => sum + value * value, 0));
@@ -128,21 +158,60 @@ export function scoreRelevance(metadata, deckModel, params = PARAMS, options = {
     const withOffTopic = pageVectorWithOffTopic(pageTokens, vocabulary, idf);
     pageVector = withOffTopic.vector;
     pageMagnitude = withOffTopic.pageMagnitude;
+    offTopicTerms = withOffTopic.offTopicTerms;
   }
-  const rawScore = pageMagnitude && deckMagnitude
-    ? pageVector.reduce((sum, value, index) => sum + value * (deckVector[index] || 0), 0) / (pageMagnitude * deckMagnitude)
-    : 0;
-  const score = Math.max(0, Math.min(1, Number.isFinite(rawScore) ? rawScore : 0));
-  const overlaps = vocabulary.map((term, index) => ({
-    term,
-    weight: pageVector[index] * (deckVector[index] || 0)
-  })).filter(item => item.weight > 0).sort((a, b) => b.weight - a.weight);
+  const dot = pageVector.reduce((sum, value, index) => sum + value * (deckVector[index] || 0), 0);
+  const rawScore = pageMagnitude && deckMagnitude ? dot / (pageMagnitude * deckMagnitude) : 0;
+  const cosine = Math.max(0, Math.min(1, Number.isFinite(rawScore) ? rawScore : 0));
   const hi = params.T_HI ?? PARAMS.T_HI;
   const lo = params.T_LO ?? PARAMS.T_LO;
+  const label = cosine >= hi ? 'related' : cosine <= lo ? 'unrelated' : 'uncertain';
+  const counts = new Map();
+  for (const term of pageTokens) counts.set(term, (counts.get(term) || 0) + 1);
+  const rows = vocabulary.map((term, index) => {
+    const pageTf = counts.get(term) || 0;
+    const termIdf = idf[index] || 0;
+    const tfidfWeight = pageTf * termIdf;
+    const pageWeight = pageVector[index] || 0;
+    const deckWeight = deckVector[index] || 0;
+    return {
+      term,
+      pageTf,
+      idf: termIdf,
+      tfidfWeight,
+      pageWeight,
+      deckWeight,
+      contribution: pageWeight * deckWeight
+    };
+  }).filter(row => row.pageTf > 0 || row.deckWeight > 0)
+    .sort((a, b) => b.contribution - a.contribution);
+  const matchedTerms = rows.filter(row => row.contribution > 0).slice(0, 5).map(row => row.term);
   return {
-    score,
-    label: score >= hi ? 'related' : score <= lo ? 'unrelated' : 'uncertain',
-    matchedTerms: overlaps.slice(0, 5).map(item => item.term)
+    tokens: textTokens,
+    deckVocabularySize: vocabulary.length,
+    rows,
+    offTopicTerms,
+    pageNorm: pageMagnitude,
+    deckNorm: deckMagnitude,
+    dot,
+    cosine,
+    thresholds: { T_HI: hi, T_LO: lo },
+    label,
+    matchedTerms,
+    formula: 'cos = (A.B)/(|A||B|)'
+  };
+}
+
+export function explainRelevance(metadata, deckModel, params = PARAMS, options = {}) {
+  return internalRelevance(metadata, deckModel, params, options);
+}
+
+export function scoreRelevance(metadata, deckModel, params = PARAMS, options = {}) {
+  const explanation = internalRelevance(metadata, deckModel, params, options);
+  return {
+    score: explanation.cosine,
+    label: explanation.label,
+    matchedTerms: explanation.matchedTerms
   };
 }
 

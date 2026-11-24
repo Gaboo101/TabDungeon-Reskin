@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   buildDeckModel,
   classifyAgainstDecks,
+  explainRelevance,
   isScorableUrl,
   normalizeUrl,
   scoreRelevance,
@@ -117,6 +118,34 @@ test('relevance uses the single PARAMS threshold source', () => {
     result.label,
     result.score >= PARAMS.T_HI ? 'related' : result.score <= PARAMS.T_LO ? 'unrelated' : 'uncertain'
   );
+});
+
+test('explainRelevance cosine agrees with scoreRelevance across random pages', () => {
+  const terms = ['tree', 'graph', 'node', 'algorithm', 'gym', 'music', 'module', 'science'];
+  let seed = 123456789;
+  const random = () => {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    return seed / 4294967296;
+  };
+  for (let iteration = 0; iteration < 100; iteration += 1) {
+    const words = Array.from({ length: 2 + Math.floor(random() * 8) }, () =>
+      terms[Math.floor(random() * terms.length)]
+    );
+    const metadata = {
+      title: words.slice(0, 3).join(' '),
+      description: words.slice(3).join(' ')
+    };
+    const explanation = explainRelevance(metadata, dataDeck);
+    const score = scoreRelevance(metadata, dataDeck);
+    assert.ok(Math.abs(explanation.cosine - score.score) < 1e-12);
+  }
+  const explanation = explainRelevance({
+    title: 'Binary tree traversal',
+    description: 'Gym music shopping'
+  }, dataDeck);
+  assert.equal(explanation.formula, 'cos = (A.B)/(|A||B|)');
+  assert.ok(explanation.rows.length > 0);
+  assert.ok(explanation.tokens.every(token => Object.hasOwn(token, 'reason')));
 });
 
 test('URL eligibility and normalization', () => {
