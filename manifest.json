@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "TabDungeon",
   "version": "1.0",
-  "description": "A gamified rogue-like extension for productivity optimization",
+  "description": "Flashcard study helper that adapts review timing to what you read",
   "side_panel": {
     "default_path": "sidepanel/sidepanel.html"
   },
