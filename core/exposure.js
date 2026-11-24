@@ -32,3 +32,14 @@ export function advanceTrackingState(state, now, maxElapsedMs = 5 * 60 * 1000) {
     elapsedMs
   };
 }
+
+export function isTrackingEligible({
+  idleState = 'active',
+  focusedWindowId,
+  trackingState
+}) {
+  if (idleState !== 'active' || !trackingState) return false;
+  if (!Number.isFinite(trackingState.windowId)) return false;
+  if (focusedWindowId === -1 || trackingState.windowId !== focusedWindowId) return false;
+  return true;
+}

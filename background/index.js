@@ -9,7 +9,7 @@ import {
   scoreRelevance
 } from '../core/relevance.js';
 import { PARAMS, clamp } from '../core/params.js';
-import { advanceTrackingState, createTrackingState } from '../core/exposure.js';
+import { advanceTrackingState, createTrackingState, isTrackingEligible } from '../core/exposure.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 const MODEL = 'gemini-3.5-flash-lite';
@@ -132,6 +132,19 @@ async function rehydrateTrackingState() {
   activePage = trackingState;
   activeTabId = trackingState.tabId;
   if (Number.isFinite(trackingState.windowId)) focusedWindowId = trackingState.windowId;
+}
+
+async function isTrackedPageActive() {
+  if (!isTrackingEligible({ idleState, focusedWindowId, trackingState: activePage })) return false;
+  try {
+    const activeTabs = await chrome.tabs.query({
+      active: true,
+      windowId: activePage.windowId
+    });
+    return activeTabs.some(tab => tab.id === activePage.tabId);
+  } catch {
+    return false;
+  }
 }
 
 // Listen for messages from side panel
@@ -386,7 +399,6 @@ chrome.windows.onFocusChanged.addListener(async windowId => {
 });
 
 chrome.idle.onStateChanged.addListener(async state => {
-  await flushExposure();
   idleState = state;
   if (state !== 'active') {
     activePage = null;
@@ -439,6 +451,7 @@ async function beginActivePage(tabId, windowId) {
 
 async function flushExposure() {
   if (!activePage || idleState !== 'active') return;
+  if (!(await isTrackedPageActive())) return;
   const now = Date.now();
   const advanced = advanceTrackingState(activePage, now, MAX_TRACKING_ELAPSED_MS);
   activePage = advanced.state;
