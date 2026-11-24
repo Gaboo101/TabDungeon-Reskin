@@ -52,3 +52,12 @@ export function calculateReview(card, quality, ctx) {
 export function isDue(card, now) {
   return (card.dueAt || 0) <= now;
 }
+
+export function countDueCards(stateOrCards, now) {
+  const cards = Array.isArray(stateOrCards)
+    ? stateOrCards
+    : Array.isArray(stateOrCards?.cards)
+      ? stateOrCards.cards
+      : [];
+  return cards.filter(card => isDue(card, now)).length;
+}

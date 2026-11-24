@@ -9,6 +9,7 @@ import {
   scoreRelevance
 } from '../core/relevance.js';
 import { PARAMS, clamp } from '../core/params.js';
+import { countDueCards } from '../core/scheduler.js';
 import {
   accumulateExposureVisit,
   advanceTrackingState,
@@ -347,8 +348,9 @@ async function testApiKey(apiKey, sendResponse) {
 async function getSessionData(sendResponse) {
   await rehydrateTrackingState();
   await flushExposure();
-  const result = await chrome.storage.local.get(['studyStats', 'devMode']);
+  const result = await chrome.storage.local.get(['studyStats', 'studyState', 'devMode']);
   const studyStats = result.studyStats || { exposureMs: 0, tabsVisited: 0, dueCards: 0, startTime: Date.now() };
+  studyStats.dueCards = countDueCards(result.studyState || { cards: [] }, Date.now());
   const devMode = result.devMode || false;
   
   if (sendResponse) {
