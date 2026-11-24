@@ -119,6 +119,74 @@
   vertical-align: top;
 }
 
+.simulation-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.simulation-tab {
+  padding: 9px;
+  border: 2px solid var(--ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.simulation-tab.active {
+  background: var(--gold);
+  box-shadow: inset 0 -3px 0 var(--ink);
+}
+
+.simulation-view {
+  display: grid;
+  gap: 10px;
+}
+
+.simulation-view[hidden] {
+  display: none;
+}
+
+.simulation-view label {
+  display: grid;
+  gap: 5px;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.simulation-view input,
+.simulation-view textarea,
+.simulation-view select {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid var(--ink);
+  background: var(--paper-light);
+  color: var(--ink);
+  font: inherit;
+}
+
+.simulation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scheduler-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.calculation-report {
+  max-height: 260px;
+  overflow: auto;
+  padding: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .simulation-status {
   color: var(--ink-soft);
   font-size: 13px;
