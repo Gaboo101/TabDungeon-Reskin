@@ -91,7 +91,7 @@
 }
 
 .manager-deck-header {
-  grid-template-columns: minmax(180px, 1fr) 180px auto auto;
+  grid-template-columns: minmax(180px, 1fr) 180px auto auto auto;
   align-items: center;
   padding-bottom: 12px;
   border-bottom: 2px dashed var(--paper-dark);

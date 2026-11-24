@@ -37,26 +37,28 @@ export function setupCards($, runtime, gameController) {
     const row = document.createElement('section');
     row.className = 'deck-row';
     const cards = state.cards.filter(card => card.deckId === deck.id);
-    const nextDue = cards.length
-      ? Math.min(...cards.map(card => card.dueAt || Date.now()))
-      : null;
     const name = document.createElement('strong');
     name.className = 'deck-name';
     name.textContent = deck.name;
     const details = document.createElement('div');
     details.className = 'deck-details';
     const dueLabel = document.createElement('span');
-    dueLabel.textContent = 'Due date';
+    const examTimestamp = Number(deck.examDate) || 0;
+    const examInDays = examTimestamp
+      ? Math.ceil((examTimestamp - Date.now()) / 86400000)
+      : null;
+    dueLabel.textContent = examInDays !== null
+      ? `Exam date · ${examInDays >= 0 ? `in ${examInDays} day${examInDays === 1 ? '' : 's'}` : `${Math.abs(examInDays)} day${examInDays === -1 ? '' : 's'} ago`}`
+      : 'Exam date';
     const dueInput = document.createElement('input');
     dueInput.type = 'date';
     dueInput.className = 'deck-due-input';
-    dueInput.setAttribute('aria-label', `Due date for ${deck.name}`);
-    dueInput.value = nextDue ? new Date(nextDue).toISOString().slice(0, 10) : '';
+    dueInput.setAttribute('aria-label', `Exam date for ${deck.name}`);
+    dueInput.value = examTimestamp ? new Date(examTimestamp).toISOString().slice(0, 10) : '';
     dueInput.addEventListener('change', async () => {
-      const dueAt = dueInput.value ? new Date(`${dueInput.value}T23:59:59.999`).getTime() : 0;
-      cards.forEach(card => { card.dueAt = dueAt; });
+      deck.examDate = dueInput.value ? new Date(`${dueInput.value}T23:59:59.999`).getTime() : null;
       await saveStudyState(state);
-      $('deck-editor-status').textContent = 'Due date updated.';
+      $('deck-editor-status').textContent = 'Exam date updated.';
       render();
     });
     const count = document.createElement('span');

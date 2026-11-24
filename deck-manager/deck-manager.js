@@ -18,6 +18,7 @@ function renderDeck(deck) {
   const exam = createInput('', 'Exam date', 'date');
   exam.value = deck.examDate ? new Date(deck.examDate).toISOString().slice(0, 10) : '';
   const saveDeck = createButton('Save deck');
+  const resetDueDates = createButton('Reset due dates', 'danger');
   const deleteDeck = createButton('Delete deck', 'danger');
   saveDeck.addEventListener('click', async () => {
     if (!name.value.trim()) return setStatus('Deck name cannot be empty.');
@@ -25,6 +26,13 @@ function renderDeck(deck) {
     deck.examDate = exam.value ? new Date(`${exam.value}T23:59:59`).getTime() : null;
     await saveStudyState(state);
     setStatus('Deck saved.');
+    render();
+  });
+  resetDueDates.addEventListener('click', async () => {
+    if (!confirm(`Reset the review dates for every card in "${deck.name}"?`)) return;
+    cards.forEach(card => { card.dueAt = 0; });
+    await saveStudyState(state);
+    setStatus('Due dates reset.');
     render();
   });
   deleteDeck.addEventListener('click', async () => {
@@ -35,7 +43,7 @@ function renderDeck(deck) {
     setStatus('Deck deleted.');
     render();
   });
-  header.append(name, exam, saveDeck, deleteDeck);
+  header.append(name, exam, saveDeck, resetDueDates, deleteDeck);
   section.appendChild(header);
 
   const cards = state.cards.filter(card => card.deckId === deck.id);
