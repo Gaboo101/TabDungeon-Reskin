@@ -9,9 +9,12 @@ import {
   scoreRelevance
 } from '../core/relevance.js';
 import { PARAMS, clamp } from '../core/params.js';
+import { advanceTrackingState, createTrackingState } from '../core/exposure.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 const MODEL = 'gemini-3.5-flash-lite';
+const TRACKING_STORAGE_KEY = 'tabDungeonActiveExposure';
+const MAX_TRACKING_ELAPSED_MS = 5 * 60 * 1000;
 
 // Default system prompt for the playable hero who doubles as the AI Guide NPC.
 // IMPORTANT: Only use information explicitly provided in the context.
@@ -57,7 +60,6 @@ Do NOT:
 - Bring up time spent on sites unprompted`;
 
 // Track active tab timing
-let activeTabStartTime = null;
 let activeTabId = null;
 let focusedWindowId = chrome.windows?.WINDOW_ID_NONE || -1;
 let idleState = 'active';
@@ -108,6 +110,29 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     deckModelSignature = '';
   }
 });
+
+function getTrackingStorage() {
+  return chrome.storage?.session?.get ? chrome.storage.session : chrome.storage.local;
+}
+
+async function persistTrackingState(trackingState) {
+  await getTrackingStorage().set({
+    [TRACKING_STORAGE_KEY]: trackingState
+  });
+}
+
+async function rehydrateTrackingState() {
+  const stored = await getTrackingStorage().get(TRACKING_STORAGE_KEY);
+  const trackingState = stored?.[TRACKING_STORAGE_KEY];
+  if (!trackingState?.tabId && trackingState?.tabId !== 0) {
+    activePage = null;
+    activeTabId = null;
+    return;
+  }
+  activePage = trackingState;
+  activeTabId = trackingState.tabId;
+  if (Number.isFinite(trackingState.windowId)) focusedWindowId = trackingState.windowId;
+}
 
 // Listen for messages from side panel
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -301,6 +326,7 @@ async function testApiKey(apiKey, sendResponse) {
 
 // Get full session data
 async function getSessionData(sendResponse) {
+  await rehydrateTrackingState();
   await flushExposure();
   const result = await chrome.storage.local.get(['studyStats', 'devMode']);
   const studyStats = result.studyStats || { exposureMs: 0, tabsVisited: 0, dueCards: 0, startTime: Date.now() };
@@ -343,6 +369,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 chrome.alarms.create('minuteUpdate', { periodInMinutes: 1 });
 chrome.alarms.onAlarm.addListener(async alarm => {
   if (alarm.name !== 'minuteUpdate') return;
+  await rehydrateTrackingState();
   await flushExposure();
 });
 
@@ -351,6 +378,7 @@ chrome.windows.onFocusChanged.addListener(async windowId => {
   focusedWindowId = windowId;
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     activePage = null;
+    await persistTrackingState(null);
     return;
   }
   const tabs = await chrome.tabs.query({ active: true, windowId });
@@ -360,7 +388,10 @@ chrome.windows.onFocusChanged.addListener(async windowId => {
 chrome.idle.onStateChanged.addListener(async state => {
   await flushExposure();
   idleState = state;
-  if (state !== 'active') activePage = null;
+  if (state !== 'active') {
+    activePage = null;
+    await persistTrackingState(null);
+  }
   else if (focusedWindowId !== chrome.windows.WINDOW_ID_NONE) {
     const tabs = await chrome.tabs.query({ active: true, windowId: focusedWindowId });
     if (tabs[0]) await beginActivePage(tabs[0].id, focusedWindowId);
@@ -370,6 +401,11 @@ chrome.idle.onStateChanged.addListener(async state => {
 // Listen for tab removal (auto-refresh tabs list)
 chrome.tabs.onRemoved.addListener((tabId) => {
   countedTabIds.delete(tabId);
+  if (activePage?.tabId === tabId) {
+    activePage = null;
+    activeTabId = null;
+    persistTrackingState(null).catch(() => {});
+  }
   chrome.runtime.sendMessage({ action: 'tabsChanged' }).catch(() => {});
 });
 
@@ -384,18 +420,30 @@ async function beginActivePage(tabId, windowId) {
   const tab = await chrome.tabs.get(tabId);
   if (!tab?.url || !isScorableUrl(tab.url)) {
     activePage = null;
+    await persistTrackingState(null);
     return;
   }
+  const now = Date.now();
+  const urlKey = normalizeUrl(tab.url);
   activeTabId = tabId;
-  activeTabStartTime = Date.now();
-  activePage = { tabId, windowId, url: normalizeUrl(tab.url), metadata: await getTabMetadata(tabId) };
+  activePage = createTrackingState({
+    tabId,
+    windowId,
+    urlKey,
+    metadata: await getTabMetadata(tabId),
+    now
+  });
   focusedWindowId = windowId;
+  await persistTrackingState(activePage);
 }
 
 async function flushExposure() {
-  if (!activePage || !activeTabStartTime || idleState !== 'active') return;
-  const dwell = Date.now() - activeTabStartTime;
-  activeTabStartTime = Date.now();
+  if (!activePage || idleState !== 'active') return;
+  const now = Date.now();
+  const advanced = advanceTrackingState(activePage, now, MAX_TRACKING_ELAPSED_MS);
+  activePage = advanced.state;
+  await persistTrackingState(activePage);
+  const dwell = advanced.elapsedMs;
   if (dwell < PARAMS.MIN_DWELL * 1000) return;
 
   const state = await chrome.storage.local.get(['studyState', 'exposureVisits', 'studyStats']);
@@ -408,7 +456,7 @@ async function flushExposure() {
   for (const deck of studyState.decks || []) {
     const cards = (studyState.cards || []).filter(card => card.deckId === deck.id);
     const relevance = scoreRelevance(pageMetadata, models.find(model => model.deckId === deck.id), PARAMS);
-    const key = `${day}:${deck.id}:${hashUrl(activePage.url)}`;
+    const key = `${day}:${deck.id}:${hashUrl(activePage.urlKey || '')}`;
     if (relevance.label !== 'related' || visits[key]) continue;
     visits[key] = true;
     const credit = PARAMS.LAMBDA * relevance.score * Math.min(dwell / (PARAMS.T_FULL * 1000), 1);
@@ -495,6 +543,8 @@ async function getAllTabsInfo(sendResponse) {
 // Initialize when extension loads
 chrome.runtime.onStartup.addListener(async () => {
   focusedWindowId = await chrome.windows.getLastFocused().then(window => window.id);
+  await rehydrateTrackingState();
+  await flushExposure();
   const tabs = await chrome.tabs.query({ active: true, windowId: focusedWindowId });
   if (tabs[0]) await beginActivePage(tabs[0].id, focusedWindowId);
 });
