@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { classifyPage } from '../classifier.js';
 import { buildDeckModel, scoreRelevance } from '../core/relevance.js';
 import { predict, train } from '../core/relevance-model.js';
+import { PARAMS } from '../core/params.js';
 
 const LABELS = ['related', 'unrelated', 'uncertain'];
 
@@ -76,11 +77,11 @@ function main(csvPath, decksPath) {
 
   let best = { f1: -1, hi: 0.25, lo: 0.08 };
   for (let hi = 0.1; hi <= 0.6; hi += 0.05) for (let lo = 0; lo < hi; lo += 0.02) {
-    const predicted = rows.map(row => scoreRelevance(row, models[row.deckId], { T_HI: hi, T_LO: lo, MIN_PAGE_TOKENS: 3 }).label);
+    const predicted = rows.map(row => scoreRelevance(row, models[row.deckId], { ...PARAMS, T_HI: hi, T_LO: lo }).label);
     const result = metrics(actual, predicted);
     if (result.macroF1 > best.f1) best = { f1: result.macroF1, hi, lo };
   }
-  const tfidfPredicted = rows.map(row => scoreRelevance(row, models[row.deckId], { T_HI: best.hi, T_LO: best.lo, MIN_PAGE_TOKENS: 3 }).label);
+  const tfidfPredicted = rows.map(row => scoreRelevance(row, models[row.deckId], { ...PARAMS, T_HI: best.hi, T_LO: best.lo }).label);
   confusionReport(`Thresholded TF-IDF (grid T_HI=${best.hi.toFixed(2)}, T_LO=${best.lo.toFixed(2)})`, actual, tfidfPredicted);
 
   const features = rows.map((row, index) => ({

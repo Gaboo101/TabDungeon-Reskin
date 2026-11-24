@@ -1,4 +1,4 @@
-import { DEFAULTS } from './params.js';
+import { PARAMS } from './params.js';
 
 const STOPWORDS = new Set([
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'for',
@@ -73,9 +73,9 @@ export function buildDeckModel(cards = [], deckMeta = {}) {
   };
 }
 
-export function scoreRelevance(metadata, deckModel, params = DEFAULTS) {
+export function scoreRelevance(metadata, deckModel, params = PARAMS) {
   const pageTokens = tokenize(pageText(metadata));
-  if (!deckModel || pageTokens.length < (params.MIN_PAGE_TOKENS ?? DEFAULTS.MIN_PAGE_TOKENS)) {
+  if (!deckModel || pageTokens.length < (params.MIN_PAGE_TOKENS ?? PARAMS.MIN_PAGE_TOKENS)) {
     return { score: 0, label: 'uncertain', matchedTerms: [] };
   }
   const vocabulary = Array.isArray(deckModel.vocabulary) ? deckModel.vocabulary : [];
@@ -92,8 +92,8 @@ export function scoreRelevance(metadata, deckModel, params = DEFAULTS) {
     term,
     weight: pageVector[index] * (deckVector[index] || 0)
   })).filter(item => item.weight > 0).sort((a, b) => b.weight - a.weight);
-  const hi = params.T_HI ?? DEFAULTS.T_HI;
-  const lo = params.T_LO ?? DEFAULTS.T_LO;
+  const hi = params.T_HI ?? PARAMS.T_HI;
+  const lo = params.T_LO ?? PARAMS.T_LO;
   return {
     score,
     label: score >= hi ? 'related' : score <= lo ? 'unrelated' : 'uncertain',
@@ -111,7 +111,7 @@ export function classifyAgainstDecks(metadata, deckModels = []) {
 
 export function scoreCardLevel(metadata, deckModel) {
   const pageTokens = tokenize(pageText(metadata));
-  if (!deckModel?.cardVectors?.length || pageTokens.length < DEFAULTS.MIN_PAGE_TOKENS) return [];
+  if (!deckModel?.cardVectors?.length || pageTokens.length < PARAMS.MIN_PAGE_TOKENS) return [];
   const pageVector = vectorForTokens(pageTokens, deckModel.vocabulary, deckModel.idf);
   return deckModel.cardVectors.map((vector, index) => ({
     cardId: deckModel.cardIds[index],

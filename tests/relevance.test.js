@@ -8,6 +8,7 @@ import {
   scoreRelevance,
   tokenize
 } from '../core/relevance.js';
+import { PARAMS } from '../core/params.js';
 
 const dataDeck = buildDeckModel([
   { id: 'tree', front: 'Binary tree traversal', back: 'Nodes, edges, recursion, depth first search' },
@@ -63,6 +64,19 @@ test('classification is deterministic and selects the best deck', () => {
     dataDeck,
     buildDeckModel([{ front: 'Philippine history', back: 'Revolution and independence' }], { id: 'history' })
   ]));
+});
+
+test('relevance uses the single PARAMS threshold source', () => {
+  assert.ok(PARAMS.MIN_PAGE_TOKENS >= 1);
+  assert.ok(PARAMS.T_LO < PARAMS.T_HI);
+  const result = scoreRelevance({
+    title: 'Binary tree traversal',
+    description: 'Learn data structures with nodes and edges.'
+  }, dataDeck);
+  assert.equal(
+    result.label,
+    result.score >= PARAMS.T_HI ? 'related' : result.score <= PARAMS.T_LO ? 'unrelated' : 'uncertain'
+  );
 });
 
 test('URL eligibility and normalization', () => {
