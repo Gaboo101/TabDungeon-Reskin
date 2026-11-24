@@ -26,6 +26,16 @@ test('tokenizer removes question and auxiliary words', () => {
   );
 });
 
+test('stemmer preserves ss, us, and is endings', () => {
+  assert.deepEqual(tokenize('class classes process processes analysis'), [
+    'class',
+    'class',
+    'process',
+    'process',
+    'analysis'
+  ]);
+});
+
 test('binary-tree page is related to data structures', () => {
   const result = scoreRelevance({
     title: 'Binary tree traversal',

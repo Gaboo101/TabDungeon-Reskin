@@ -26,7 +26,14 @@ export function tokenize(text = '') {
     .map(token => {
       if (token.length > 5 && token.endsWith('ing')) return token.slice(0, -3);
       if (token.length > 4 && token.endsWith('ed')) return token.slice(0, -2);
-      if (token.length > 4 && token.endsWith('s')) return token.slice(0, -1);
+      if (token.endsWith('sses') && token.length > 5) return token.slice(0, -2);
+      if (
+        token.length > 4 &&
+        token.endsWith('s') &&
+        !token.endsWith('ss') &&
+        !token.endsWith('us') &&
+        !token.endsWith('is')
+      ) return token.slice(0, -1);
       return token;
     })
     .filter(token => token.length >= 3);
