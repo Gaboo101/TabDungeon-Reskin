@@ -213,8 +213,6 @@ async function handleChatRequest(userMessage, sendResponse) {
     Current session stats: ${JSON.stringify(stats)}. 
     Use these stats when relevant to the user's questions.`;
     
-    console.log('[TabDungeon] Chat request:', { model: MODEL, messageLength: userMessage.length });
-    
     // Gemini API uses contents format with parts
     const requestBody = {
       contents: [
@@ -232,18 +230,14 @@ async function handleChatRequest(userMessage, sendResponse) {
       }
     };
     
-    const apiUrl = `${GEMINI_API_URL}?key=${cleanKey}`;
-    console.log('[TabDungeon] Chat request to Gemini');
-    
-    const response = await fetch(apiUrl, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'x-goog-api-key': cleanKey
       },
       body: JSON.stringify(requestBody)
     });
-    
-    console.log('[TabDungeon] API response status:', response.status, response.statusText);
     
     if (!response.ok) {
       let errorData;
@@ -261,8 +255,6 @@ async function handleChatRequest(userMessage, sendResponse) {
         rawResponse: errorData
       };
       
-      console.error('[TabDungeon] API Error:', errorResponse);
-      
       if (devMode) {
         sendResponse(errorResponse);
       } else {
@@ -272,8 +264,6 @@ async function handleChatRequest(userMessage, sendResponse) {
     }
     
     const result = await response.json();
-    console.log('[TabDungeon] API success');
-    
     // Gemini response format: candidates[0].content.parts[0].text
     if (!result.candidates || result.candidates.length === 0) {
       const errorResponse = {
@@ -295,8 +285,6 @@ async function handleChatRequest(userMessage, sendResponse) {
     
     sendResponse(responseData);
   } catch (error) {
-    console.error('[TabDungeon] Chat error:', error);
-    console.error('[TabDungeon] Stack:', error.stack);
     const errorData = {
       success: false,
       error: error.message || 'Failed to get response from AI Guide',
@@ -319,9 +307,12 @@ async function testApiKey(apiKey, sendResponse) {
     return;
   }
   try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey.trim())}`, {
+    const response = await fetch(GEMINI_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey.trim()
+      },
       body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'Reply with OK.' }] }] })
     });
     sendResponse(response.ok ? { success: true } : { success: false, error: `API returned ${response.status}.` });
