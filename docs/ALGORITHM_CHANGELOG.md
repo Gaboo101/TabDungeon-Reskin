@@ -27,3 +27,8 @@
 - **Before:** `card.interval` stored both the plain SM-2 chain interval and the exposure-adjusted interval, allowing credit to compound on later reviews.
 - **After:** `card.baseInterval` holds the unadjusted chain; `card.interval` holds the final adjusted/due interval. Missing `baseInterval` values migrate to the stored `interval`.
 - **Deadline behavior:** The exam-date cap is allowed to reduce the interval below the base interval.
+
+## 2.6 Domain Laplace denominator
+
+- **Before:** The Naive Bayes domain denominator used `Object.keys(model.counts).length`, which was 3 for the label table rather than the number of distinct domains.
+- **After:** Training stores `domainCount` and sorted distinct domains; prediction uses `domainCount` as the Laplace denominator and assigns unseen domains no observed count.

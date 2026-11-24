@@ -13,3 +13,17 @@ test('Naive Bayes model trains and predicts within the inference budget', () => 
   assert.ok(result.inferenceMs < 200);
   assert.equal(Object.keys(result.probabilities).length, 3);
 });
+
+test('domain Laplace denominator uses distinct domains and handles unseen domains', () => {
+  const model = train([
+    { similarity: 0.8, dwell: 120, domain: 'edu.example', label: 'related' },
+    { similarity: 0.8, dwell: 120, domain: 'edu.example', label: 'related' },
+    { similarity: 0.02, dwell: 20, domain: 'shop.example', label: 'unrelated' }
+  ]);
+  assert.equal(model.domainCount, 2);
+  assert.deepEqual(model.domains, ['edu.example', 'shop.example']);
+  assert.equal(model.domainCount, 2);
+  const unseen = predict({ similarity: 0.8, dwell: 120, domain: 'unknown.example' }, model);
+  assert.ok(Number.isFinite(unseen.probabilities.related));
+  assert.ok(Math.abs(Object.values(unseen.probabilities).reduce((sum, value) => sum + value, 0) - 1) < 1e-12);
+});

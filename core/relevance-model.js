@@ -7,6 +7,7 @@ const bin = (value, edges) => {
 export function train(rows = []) {
   const started = performance.now();
   const counts = Object.fromEntries(LABELS.map(label => [label, { total: 0, similarity: {}, dwell: {}, domain: {} }]));
+  const domains = new Set();
   for (const row of rows) {
     if (!counts[row.label]) continue;
     const group = counts[row.label];
@@ -14,8 +15,17 @@ export function train(rows = []) {
     for (const [feature, value] of [['similarity', bin(row.similarity, [0.08, 0.25, 0.5, 0.75])], ['dwell', bin(row.dwell, [30, 120, 600])], ['domain', String(row.domain || '').toLowerCase()]]) {
       group[feature][value] = (group[feature][value] || 0) + 1;
     }
+    const domain = String(row.domain || '').trim().toLowerCase();
+    if (domain) domains.add(domain);
   }
-  return { labels: LABELS, counts, total: rows.length, trainingMs: performance.now() - started };
+  return {
+    labels: LABELS,
+    counts,
+    total: rows.length,
+    domainCount: domains.size,
+    domains: [...domains].sort(),
+    trainingMs: performance.now() - started
+  };
 }
 
 export function predict(features, model) {
@@ -33,7 +43,7 @@ export function predict(features, model) {
     let probability = prior;
     for (const [feature, value] of values) {
       const vocabularySize = feature === 'domain'
-        ? Math.max(1, Object.keys(model?.counts || {}).length)
+        ? Math.max(1, Number(model?.domainCount) || model?.domains?.length || 1)
         : feature === 'similarity' ? 5 : 4;
       probability *= ((group[feature]?.[value] || 0) + 1) / (group.total + vocabularySize);
     }
