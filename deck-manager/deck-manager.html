@@ -23,7 +23,26 @@
       <button id="add-deck" type="button">+ Create deck</button>
       <span id="manager-status" aria-live="polite"></span>
     </section>
+    <section class="manager-controls" aria-label="Deck list controls">
+      <label>Search decks
+        <input id="deck-search" type="search" placeholder="Name, description, or keywords">
+      </label>
+      <label>Show
+        <select id="deck-view">
+          <option value="active">Active decks</option>
+          <option value="archived">Archived decks</option>
+        </select>
+      </label>
+      <label>Sort by
+        <select id="deck-sort">
+          <option value="name">Name</option>
+          <option value="recent">Recently studied</option>
+          <option value="due">Most due</option>
+        </select>
+      </label>
+    </section>
 
+    <small id="storage-usage" class="storage-usage" aria-live="polite">Checking local storage usage...</small>
     <section id="manager-decks" class="manager-decks"></section>
   </main>
   <script type="module" src="deck-manager.js"></script>

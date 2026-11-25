@@ -22,9 +22,6 @@
             <strong id="game-streak">Streak 0</strong>
           </div>
           <h2>Active study context</h2><div id="tabs-list" class="tabs-list"><span>Loading...</span></div>
-            <div class="review-heading">
-              <button id="exit-test" class="exit-test" type="button" aria-label="Exit flashcard test" hidden></button>
-            </div>
             <div id="review-status" class="review-status">Loading your next review...</div>
             <div id="empty-card-state" class="drawn-card" hidden>
               <button id="show-test-options" type="button">Test a card</button>
@@ -60,7 +57,12 @@
           </section>
         <section class="panel" id="guide-panel" hidden>
           <p class="panel-title">Guide Chat</p>
-          <div id="chat-messages" class="chat-messages"><div class="chat-message guide"><strong>Guide:</strong> Welcome back, traveler. Ask me about your focus quest, this session, or the path ahead.</div></div>
+          <div id="chat-messages" class="chat-messages">
+            <div class="chat-message guide">
+              <img class="chat-avatar" src="../assets/ui/icons/Avatars_05.png" alt="">
+              <span class="chat-bubble"><strong>Guide:</strong> Welcome back. Ask me about your flashcards, review schedule, or exam plan.</span>
+            </div>
+          </div>
           <div class="chat-entry"><input id="chat-input" type="text" placeholder="Ask the Guide..." autocomplete="off"><button id="chat-send" type="button">Send</button></div>
         </section>
         <section class="panel" id="cards-panel" hidden>
@@ -74,7 +76,15 @@
             </div>
             <small id="deck-editor-status" aria-live="polite"></small>
           </div>
+          <label class="deck-search-label">Find a deck
+            <input id="deck-search" type="search" placeholder="Search active decks..." autocomplete="off">
+          </label>
           <div id="deck-list" class="deck-list"></div>
+          <div id="deck-pagination" class="deck-pagination" hidden>
+            <button id="deck-page-previous" type="button">Previous</button>
+            <span id="deck-page-status"></span>
+            <button id="deck-page-next" type="button">Next</button>
+          </div>
         </section>
         <section class="panel" id="settings-panel" hidden>
           <p class="panel-title">Settings</p>
@@ -94,10 +104,10 @@
           </div>
         </section>
       </main>
-        <div class="session-stats">
-          <span id="due-cards">Due cards: 0</span>
-          <span id="session-time">Session: 0m</span>
-        </div>
+      <div class="session-stats">
+        <span id="due-cards">Due cards: 0</span>
+        <span id="session-time">Session: 0m</span>
+      </div>
       <nav class="footer-nav" aria-label="Main navigation">
         <div class="footer-nav-item"><a href="#stats-panel" class="footer-nav-link active" data-panel="stats-panel" aria-label="Stats"><img src="../assets/sprites/icon_stats.png" alt="Stats" class="sprite"></a></div>
         <div class="footer-nav-item"><a href="#guide-panel" class="footer-nav-link" data-panel="guide-panel" aria-label="Guide"><img src="../assets/sprites/icon_chat.png" alt="Guide" class="sprite"></a></div>

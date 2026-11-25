@@ -2,6 +2,7 @@ export function setupSettings($, runtime, gameController) {
   const storage = globalThis.chrome?.storage?.local;
   let scale = 100;
   let devMode = false;
+  document.body.classList.remove('reduce-motion');
 
   const save = values => storage?.set(values);
   const setDeveloperVisibility = visible => {
@@ -19,6 +20,7 @@ export function setupSettings($, runtime, gameController) {
       $('ai-toggle').checked = result.aiEnabled !== false;
       $('game-effects').checked = result.gameEffects !== false;
       $('reduce-motion').checked = result.reduceMotion === true;
+      document.body.classList.toggle('reduce-motion', $('reduce-motion').checked);
       gameController?.setOptions({
         effectsEnabled: $('game-effects').checked,
         reduceMotion: $('reduce-motion').checked
@@ -44,6 +46,7 @@ export function setupSettings($, runtime, gameController) {
     save({ gameEffects: event.target.checked });
   });
   $('reduce-motion').addEventListener('change', event => {
+    document.body.classList.toggle('reduce-motion', event.target.checked);
     gameController?.setOptions({ reduceMotion: event.target.checked });
     save({ reduceMotion: event.target.checked });
   });

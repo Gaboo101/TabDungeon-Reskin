@@ -2,7 +2,20 @@ export function setupChat($, runtime, isDeveloperMode) {
   function addMessage(text, kind) {
     const message = document.createElement('div');
     message.className = `chat-message ${kind}`;
-    message.textContent = text;
+    if (kind === 'guide') {
+      const avatar = document.createElement('img');
+      avatar.className = 'chat-avatar';
+      avatar.src = '../assets/ui/icons/Avatars_05.png';
+      avatar.alt = '';
+      const bubble = document.createElement('span');
+      bubble.className = 'chat-bubble';
+      const label = document.createElement('strong');
+      label.textContent = 'Guide: ';
+      bubble.append(label, document.createTextNode(text));
+      message.append(avatar, bubble);
+    } else {
+      message.textContent = text;
+    }
     $('chat-messages').appendChild(message);
     $('chat-messages').scrollTop = $('chat-messages').scrollHeight;
   }

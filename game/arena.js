@@ -7,6 +7,17 @@ function spriteOptions(effectsEnabled, reduceMotion) {
   return { effectsEnabled, reducedMotion: reduceMotion };
 }
 
+function playOnce(sprite, tag, options = {}) {
+  if (!sprite?.play) return Promise.resolve();
+  return new Promise(resolve => {
+    sprite.play(tag, { ...options, loop: false, onDone: resolve });
+  });
+}
+
+function wait(milliseconds) {
+  return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+
 function placeholderAtlas(definition) {
   return {
     type: 'aseprite',
@@ -50,7 +61,12 @@ function createThemeSprite(container, definition, options) {
   };
 
   loadAtlas(definition.sheet, definition.jsonUrl, definition).then(atlas => {
-    if (destroyed || atlas.loadError) return;
+    if (destroyed) return;
+    if (atlas.loadError) {
+      ready = true;
+      sprite.play(requested.tag, requested.playOptions);
+      return;
+    }
     const previousStyle = sprite.element.style.cssText;
     sprite.destroy();
     sprite = createSprite(container, atlas, options);
@@ -69,7 +85,8 @@ export function renderArena(container, {
   effectsEnabled = true,
   reduceMotion = false,
   ambientEnabled = true,
-  theme = ACTIVE_THEME
+  theme = ACTIVE_THEME,
+  dueCardCount = 0
 } = {}) {
   const assets = getTheme(theme);
   container.textContent = '';
@@ -97,12 +114,45 @@ export function renderArena(container, {
   let currentDeck = deck;
   let pendingContext = null;
   let monster = null;
+  let dueCardIndicator = null;
 
   function createMonster(animateEntry = true) {
+    if (isTinySwords && dueCardCount > 0 && !currentCard) {
+      monsterSlot.textContent = '';
+      const icon = document.createElement('img');
+      icon.className = 'game-arena-due-icon';
+      icon.src = '../assets/ui/icons/r02_c12.png';
+      icon.alt = 'Due flashcard';
+      monsterSlot.appendChild(icon);
+      const proxy = {
+        element: icon,
+        play(_tag, playOptions = {}) {
+          playOptions.onDone?.();
+        },
+        setFacing() {},
+        stop() {},
+        destroy() {
+          icon.remove();
+        }
+      };
+      dueCardIndicator = proxy;
+      monsterSlot.style.transition = 'none';
+      monsterSlot.style.transform = 'translateX(0)';
+      return proxy;
+    }
+    dueCardIndicator = null;
     const tier = currentCard?.tier || 't1';
+    if (isTinySwords && !currentCard && dueCardCount === 0) {
+      monsterSlot.textContent = '';
+      monsterSlot.style.transition = 'none';
+      monsterSlot.style.transform = 'translateX(0)';
+      return null;
+    }
     const monsterAsset = currentCard
       ? getMonsterAsset(tier, currentCard.id, currentDeck?.id, theme)
-      : null;
+      : isTinySwords
+        ? getMonsterAsset('t1', 'empty-arena', 'empty-arena', theme)
+        : null;
     if (!monsterAsset) return null;
     const monsterStyle = TIER_STYLES[tier] || TIER_STYLES.t1;
     const sprite = createThemeSprite(
@@ -152,6 +202,7 @@ export function renderArena(container, {
   function finishMonster(animateEntry = false) {
     monster?.destroy();
     monster = null;
+    dueCardIndicator = null;
     hero.play('idle', { loop: true });
     if (pendingContext) {
       currentCard = pendingContext.card;
@@ -180,43 +231,16 @@ export function renderArena(container, {
     setTimeout(() => target.element.classList.remove('game-arena-hit'), 260);
   }
 
-  function playEffects(effects = [], reviewEvent = null) {
+  async function playEffects(effects = [], reviewEvent = null) {
     if (!effectsEnabled || reduceMotion) return;
     if (pendingContext?.card?.id === reviewEvent?.cardId) pendingContext = null;
     const outcome = effects.find(effect => effect.type === 'defeated' || effect.type === 'escaped');
     const deckFinished = effects.some(effect =>
       effect.type === 'floorCleared' || effect.type === 'deckFinished'
     );
-    if (outcome && monster) {
-      function playDeathSequence() {
-        setTimeout(() => {
-          if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
-          if (isTinySwords) {
-            monster.destroy();
-            monster = createThemeSprite(
-              monsterSlot,
-              assets.defeat,
-              { ...spriteOptions(effectsEnabled, reduceMotion), scale: assets.defeat.displayScale }
-            );
-            monster.play('Dead', {
-              durationScale: EFFECT_DURATION_SCALE,
-              onDone: () => monster.play('Buried', {
-                durationScale: EFFECT_DURATION_SCALE,
-                onDone: () => finishMonster(false)
-              })
-            });
-            return;
-          }
-          monster.play('hurt', {
-            durationScale: EFFECT_DURATION_SCALE,
-            onDone: () => monster.play('death', {
-              durationScale: EFFECT_DURATION_SCALE,
-              onDone: finishMonster
-            })
-          });
-        }, 220);
-      }
+    const celebrate = effects.some(effect => effect.type === 'levelUp' || effect.type === 'floorCleared');
 
+    if (outcome && monster) {
       if (outcome.type === 'defeated') {
         const attackTags = isTinySwords
           ? ['Attack_1', 'Attack_2']
@@ -225,50 +249,66 @@ export function renderArena(container, {
           heroSlot.style.transition = 'transform 180ms ease-out';
           heroSlot.style.transform = 'translateX(18px)';
         }
-        function playAttack(index) {
-          hero.play(attackTags[index], {
-            durationScale: EFFECT_DURATION_SCALE,
-            onDone: () => {
-              showHit(monster);
-              if (index < attackTags.length - 1) return playAttack(index + 1);
-              if (deckFinished) playDeathSequence();
-              else {
-                if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
-                hero.play('idle', { loop: true });
-                monster.play(isTinySwords ? 'idle' : 'move', { loop: true });
-              }
-            }
-          });
+        for (const tag of attackTags) {
+          await playOnce(hero, tag, { durationScale: EFFECT_DURATION_SCALE });
+          showHit(monster);
         }
-        playAttack(0);
+        if (deckFinished) {
+          await wait(220);
+          if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
+          if (isTinySwords && dueCardIndicator) {
+            dueCardIndicator.destroy();
+            dueCardIndicator = null;
+            monster = null;
+            finishMonster(false);
+          } else if (isTinySwords) {
+            const defeatedMonster = monster;
+            defeatedMonster.destroy();
+            const defeatSprite = createThemeSprite(
+              monsterSlot,
+              assets.defeat,
+              { ...spriteOptions(effectsEnabled, reduceMotion), scale: assets.defeat.displayScale }
+            );
+            monster = defeatSprite;
+            await playOnce(defeatSprite, 'Dead', { durationScale: EFFECT_DURATION_SCALE });
+            await playOnce(defeatSprite, 'Buried', { durationScale: EFFECT_DURATION_SCALE });
+            if (monster === defeatSprite) finishMonster(false);
+          } else {
+            await playOnce(monster, 'hurt', { durationScale: EFFECT_DURATION_SCALE });
+            await playOnce(monster, 'death', { durationScale: EFFECT_DURATION_SCALE });
+            finishMonster();
+          }
+        } else {
+          if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
+          hero.play('idle', { loop: true });
+          if (pendingContext) finishMonster(false);
+          else monster.play(isTinySwords ? 'idle' : 'move', { loop: true });
+        }
       } else {
         showMiss();
         showHit(monster);
         if (isTinySwords) {
           monsterSlot.style.transition = 'transform 180ms ease-out';
           monsterSlot.style.transform = 'translateX(-18px)';
-          hero.play('Run', {
-            onDone: () => hero.play('idle', { loop: true })
-          });
+          await Promise.all([
+            playOnce(hero, 'Run'),
+            playOnce(monster, 'Attack_Right', { durationScale: EFFECT_DURATION_SCALE })
+          ]);
+          hero.play('idle', { loop: true });
+          monsterSlot.style.transform = 'translateX(0)';
+        } else {
+          await playOnce(monster, 'dash', { durationScale: EFFECT_DURATION_SCALE });
         }
-        monster.play(isTinySwords ? 'Attack_Right' : 'dash', {
-          durationScale: EFFECT_DURATION_SCALE,
-          onDone: () => {
-            if (isTinySwords) monsterSlot.style.transform = 'translateX(0)';
-            if (pendingContext) {
-              finishMonster(false);
-            } else {
-              monster.play(isTinySwords ? 'idle' : 'move', { loop: true });
-            }
-          }
-        });
+        if (pendingContext) finishMonster(false);
+        else monster.play(isTinySwords ? 'idle' : 'move', { loop: true });
       }
     }
-    if (effects.some(effect => effect.type === 'levelUp' || effect.type === 'floorCleared')) {
-      setTimeout(() => hero.play(isTinySwords ? 'Run' : 'jump', {
-        durationScale: EFFECT_DURATION_SCALE,
-        onDone: () => hero.play('idle', { loop: true })
-      }), outcome ? 420 : 0);
+
+    if (celebrate) {
+      if (outcome) await wait(420);
+      if (isTinySwords) heroSlot.style.transform = 'translateX(0)';
+      await playOnce(hero, isTinySwords ? 'Run' : 'jump', { durationScale: EFFECT_DURATION_SCALE });
+      hero.play('idle', { loop: true });
     }
   }
 
@@ -277,8 +317,9 @@ export function renderArena(container, {
     get monster() {
       return monster;
     },
-    setNextCard(nextCard, nextDeck) {
+    setNextCard(nextCard, nextDeck, nextDueCardCount = dueCardCount) {
       pendingContext = { card: nextCard, deck: nextDeck };
+      dueCardCount = Math.max(0, Number(nextDueCardCount) || 0);
       if (!monster || !effectsEnabled || reduceMotion) {
         finishMonster();
       }

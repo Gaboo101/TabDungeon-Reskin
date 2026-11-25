@@ -18,7 +18,13 @@ Run these from the repository root:
 - `npm run evaluate` - evaluate the relevance classifier against the sample dataset.
 - `npm run batch-sim` - run 500 learners across simulation variants and write `docs/simulation-results.csv`.
 - `npm run calc-sheet` - generate `docs/CALCULATION_SHEET.md` from real relevance and scheduler functions.
+- `npm run benchmark:decks` - benchmark synthetic deck-model building, classification, due counts, and list preparation.
 - `npm run batch-sim -- 20` - run a small batch with a custom learner count.
+- `npm run benchmark:decks -- 50 2` - benchmark with 50 cards per deck and twice the sample text.
+
+The Deck Manager displays current Chrome local-storage usage and paginates large deck/card lists. The deck benchmark reports local Node timings and serialized study-state size for increasing deck counts. It is a repeatable comparison tool, not a universal capacity guarantee; Chrome side-panel rendering and real-device responsiveness still need to be measured separately.
+
+Decks support editable descriptions, keywords, exam dates, color presets, and icons. Active decks can be searched and sorted; archived decks retain their cards and schedules for restoration. Permanent deletion is only available from the archived view.
 
 Open `simulation/simulation.html` through the Chrome extension or as a local file. The page uses sample/in-memory data and does not read or write the real study state.
 

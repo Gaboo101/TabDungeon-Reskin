@@ -35,9 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (runtime.onMessage) {
     runtime.onMessage.addListener(message => {
       if (message.action === 'tabsChanged') stats.update();
+      if (message.action === 'studyStateChanged') {
+        cards.refresh().catch(error => console.error('Study state refresh failed:', error));
+        stats.update();
+      }
     });
   } else {
-    $('status-message').textContent = 'Status: extension preview mode';
+    if ($('status-message')) $('status-message').textContent = 'Status: extension preview mode';
   }
 
   stats.update();

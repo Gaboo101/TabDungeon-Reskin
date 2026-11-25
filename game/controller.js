@@ -31,7 +31,7 @@ export function createGameController($) {
     if (log) log.hidden = !effectsEnabled;
   }
 
-  function renderContext(card, deck) {
+  function renderContext(card, deck, dueCardCount = 0) {
     if (!gameState) return;
     arena?.hero.destroy();
     arena?.monster?.destroy();
@@ -41,7 +41,8 @@ export function createGameController($) {
       gameState,
       effectsEnabled,
       reduceMotion,
-      ambientEnabled
+      ambientEnabled,
+      dueCardCount
     });
   }
 
@@ -57,15 +58,15 @@ export function createGameController($) {
       renderVisibility();
       arena?.setAmbientEnabled?.(ambientEnabled);
     },
-    showReview(card, deck) {
-      renderContext(card, deck);
+    showReview(card, deck, dueCardCount = 0) {
+      renderContext(card, deck, dueCardCount);
     },
-    queueReview(card, deck) {
-      if (arena?.setNextCard) arena.setNextCard(card, deck);
-      else renderContext(card, deck);
+    queueReview(card, deck, dueCardCount = 0) {
+      if (arena?.setNextCard) arena.setNextCard(card, deck, dueCardCount);
+      else renderContext(card, deck, dueCardCount);
     },
-    showEmpty() {
-      renderContext(null, null);
+    showEmpty(dueCardCount = 0) {
+      renderContext(null, null, dueCardCount);
     },
     async onReview(event) {
       if (!gameState) await this.load();
@@ -77,7 +78,7 @@ export function createGameController($) {
       const effects = event.deckFinished
         ? [...result.effects, { type: 'deckFinished' }]
         : result.effects;
-      arena.playEffects(effects, event);
+      return arena.playEffects(effects, event);
     }
   };
 }

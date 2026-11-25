@@ -7,7 +7,8 @@ import {
   calculateExposureCreditIncrement,
   createTrackingState,
   isTrackingEligible,
-  pruneExposureVisits
+  pruneExposureVisits,
+  removeExposureVisitsForDeck
 } from '../core/exposure.js';
 
 const source = fs.readFileSync(new URL('../background/index.js', import.meta.url), 'utf8');
@@ -116,4 +117,20 @@ test('exposure visits are pruned after seven days', () => {
     '2026-11-18:deck-1:def',
     '2026-11-24:deck-1:ghi'
   ]);
+});
+
+test('deleted deck exposure visits are removed without matching deck-id prefixes', () => {
+  const visits = {
+    '2026-11-25:deck-1:abc': { dwellMs: 1 },
+    '2026-11-25:deck-10:def': { dwellMs: 2 },
+    '2026-11-25:deck:with:colon:ghi': { dwellMs: 3 }
+  };
+  assert.deepEqual(removeExposureVisitsForDeck(visits, 'deck-1'), {
+    '2026-11-25:deck-10:def': { dwellMs: 2 },
+    '2026-11-25:deck:with:colon:ghi': { dwellMs: 3 }
+  });
+  assert.deepEqual(removeExposureVisitsForDeck(visits, 'deck:with:colon'), {
+    '2026-11-25:deck-1:abc': { dwellMs: 1 },
+    '2026-11-25:deck-10:def': { dwellMs: 2 }
+  });
 });

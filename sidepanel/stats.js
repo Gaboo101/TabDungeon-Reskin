@@ -3,10 +3,14 @@ export function createStatsView($, runtime) {
 
   function renderStats(stats) {
     if (!stats) return;
-    $('session-time').textContent = `Session: ${formatMinutes(Date.now() - (stats.startTime || Date.now()))}`;
-    $('study-exposure').textContent = `Study exposure: ${formatMinutes(stats.exposureMs)}`;
-    $('due-cards').textContent = `Due cards: ${stats.dueCards || 0}`;
-    $('tab-count').textContent = `New tabs: ${stats.tabsVisited || 0}`;
+    const sessionTime = $('session-time');
+    const studyExposure = $('study-exposure');
+    const dueCards = $('due-cards');
+    const tabCount = $('tab-count');
+    if (sessionTime) sessionTime.textContent = `Session: ${formatMinutes(Date.now() - (stats.startTime || Date.now()))}`;
+    if (studyExposure) studyExposure.textContent = `Study exposure: ${formatMinutes(stats.exposureMs)}`;
+    if (dueCards) dueCards.textContent = `Due cards: ${stats.dueCards || 0}`;
+    if (tabCount) tabCount.textContent = `New tabs: ${stats.tabsVisited || 0}`;
   }
 
   function loadTabs() {

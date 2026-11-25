@@ -116,3 +116,12 @@ export function pruneExposureVisits(visits, now, retentionDays = 7) {
   }
   return pruned;
 }
+
+export function removeExposureVisitsForDeck(visits, deckId) {
+  const source = visits && typeof visits === 'object' ? visits : {};
+  const targetDeckId = String(deckId);
+  return Object.fromEntries(Object.entries(source).filter(([key]) => {
+    const parts = key.split(':');
+    return parts.slice(1, -1).join(':') !== targetDeckId;
+  }));
+}

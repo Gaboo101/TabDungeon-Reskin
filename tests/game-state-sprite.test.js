@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDefaultGameState, createGameStorage } from '../game/game-state.js';
-import { loadGridAtlas, parseAsepriteAtlas, tagFrameIndices } from '../game/sprite-engine.js';
+import { createSprite, loadGridAtlas, parseAsepriteAtlas, tagFrameIndices } from '../game/sprite-engine.js';
 import { ACTIVE_THEME, THEMES, TIER_STYLES } from '../game/asset-map.js';
 
 test('game storage uses a separate versioned key and merges defaults', async () => {
@@ -77,6 +77,60 @@ test('grid atlas preserves cells, crops, and tags', () => {
   assert.equal(atlas.type, 'grid');
   assert.deepEqual(atlas.crop, { x: 24, y: 28, w: 56, h: 36 });
   assert.equal(atlas.tags.idle.frames, 6);
+});
+
+test('one-shot sprite animations complete while the document is hidden', async () => {
+  const originalDocument = globalThis.document;
+  const originalImage = globalThis.Image;
+  globalThis.document = {
+    hidden: true,
+    createElement() {
+      return {
+        style: { setProperty() {} },
+        classList: { add() {} },
+        setAttribute() {},
+        remove() {}
+      };
+    },
+    addEventListener() {},
+    removeEventListener() {}
+  };
+  globalThis.Image = class {
+    set src(_value) {
+      queueMicrotask(() => this.onload?.());
+    }
+  };
+
+  try {
+    const container = { appendChild() {} };
+    const atlas = loadGridAtlas({
+      type: 'grid',
+      sheet: 'assets/test.png',
+      cell: { w: 1, h: 1 },
+      crop: { x: 0, y: 0, w: 1, h: 1 },
+      cols: 1,
+      rows: 1,
+      tags: { attack: { row: 0, frames: 2 } }
+    });
+    const sprite = createSprite(container, atlas);
+    let timeout;
+    try {
+      await Promise.race([
+        new Promise(resolve => sprite.play('attack', { onDone: resolve })),
+        new Promise((_, reject) => {
+          timeout = setTimeout(() => reject(new Error('Hidden one-shot animation did not complete')), 100);
+        })
+      ]);
+    } finally {
+      clearTimeout(timeout);
+      sprite.destroy();
+    }
+  } finally {
+    if (originalDocument === undefined) delete globalThis.document;
+    else globalThis.document = originalDocument;
+    if (originalImage === undefined) delete globalThis.Image;
+    else globalThis.Image = originalImage;
+  }
 });
 
 test('Tiny Swords is the active theme and keeps pixel-duo as a selectable fallback', () => {

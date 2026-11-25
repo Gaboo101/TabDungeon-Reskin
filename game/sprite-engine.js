@@ -225,6 +225,7 @@ export function createSprite(container, atlas, options = {}) {
   function step(loop) {
     if (destroyed || !ready) return;
     if (isHidden()) {
+      if (!loop) return finish();
       timer = setTimeout(() => step(loop), 100);
       return;
     }

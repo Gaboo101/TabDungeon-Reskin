@@ -17,6 +17,7 @@ import {
   isTrackingEligible,
   pruneExposureVisits
 } from '../core/exposure.js';
+import { getActiveCards, getActiveDecks, groupCardsByDeck } from '../state/deck-utils.js';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent';
 const MODEL = 'gemini-3.5-flash-lite';
@@ -63,15 +64,17 @@ let deckModelSignature = '';
 
 async function getDeckModels(studyState = null) {
   const state = studyState || (await chrome.storage.local.get('studyState')).studyState || { decks: [], cards: [] };
+  const activeDecks = getActiveDecks(state);
+  const activeCards = getActiveCards(state);
   const signature = JSON.stringify({
-    decks: (state.decks || []).map(deck => ({
+    decks: activeDecks.map(deck => ({
       id: deck.id,
       name: deck.name,
       description: deck.description,
       keywords: deck.keywords,
       examDate: deck.examDate
     })),
-    cards: (state.cards || []).map(card => ({
+    cards: activeCards.map(card => ({
       id: card.id,
       deckId: card.deckId,
       front: card.front,
@@ -85,8 +88,9 @@ async function getDeckModels(studyState = null) {
     deckModelSignature = signature;
     return deckModelCache;
   }
-  deckModelCache = (state.decks || []).map(deck => buildDeckModel(
-    (state.cards || []).filter(card => card.deckId === deck.id),
+  const cardsByDeck = groupCardsByDeck(activeCards);
+  deckModelCache = activeDecks.map(deck => buildDeckModel(
+    cardsByDeck.get(deck.id) || [],
     { ...deck, description: deck.description, keywords: deck.keywords }
   ));
   deckModelSignature = signature;
@@ -327,7 +331,8 @@ async function getSessionData(sendResponse) {
   await flushExposure();
   const result = await chrome.storage.local.get(['studyStats', 'studyState', 'devMode']);
   const studyStats = result.studyStats || { exposureMs: 0, tabsVisited: 0, dueCards: 0, startTime: Date.now() };
-  studyStats.dueCards = countDueCards(result.studyState || { cards: [] }, Date.now());
+  const activeCards = getActiveCards(result.studyState);
+  studyStats.dueCards = countDueCards(activeCards, Date.now());
   const devMode = result.devMode || false;
   
   if (sendResponse) {
@@ -446,15 +451,17 @@ async function flushExposure() {
 
   const state = await chrome.storage.local.get(['studyState', 'exposureVisits', 'studyStats']);
   const studyState = state.studyState || { decks: [], cards: [] };
-  const visits = state.exposureVisits || {};
+  let visits = state.exposureVisits || {};
   const day = new Date().toISOString().slice(0, 10);
   const stats = state.studyStats || { exposureMs: 0, tabsVisited: 0, dueCards: 0, startTime: Date.now() };
   const models = await getDeckModels(studyState);
+  const activeDecks = getActiveDecks(studyState);
+  const cardsByDeck = groupCardsByDeck(studyState.cards || []);
   const pageMetadata = activePage.metadata;
   visits = pruneExposureVisits(visits, day);
   let countedExposureDwell = false;
-  for (const deck of studyState.decks || []) {
-    const cards = (studyState.cards || []).filter(card => card.deckId === deck.id);
+  for (const deck of activeDecks) {
+    const cards = cardsByDeck.get(deck.id) || [];
     const relevance = scoreRelevance(pageMetadata, models.find(model => model.deckId === deck.id), PARAMS);
     if (relevance.label !== 'related') continue;
     const accumulated = accumulateExposureVisit(visits, {
